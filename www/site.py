@@ -17,6 +17,7 @@ class site():
       function updateSite()
       {
         ajaxFunction('http://localhost:%s/','devices')
+        ajaxFunction('http://localhost:%s/','where')
         setTimeout('updateSite()', 500)
       }
     </script>  
@@ -49,7 +50,7 @@ class site():
           </table>
         </div>
         <div class='box main'>
-          <h2>Animals in this area</h2>
+          <h2><div id='where'></div></h2>
           <hr />
           <div class='scroller info large' id='info'></div>
         </div>
@@ -61,7 +62,7 @@ class site():
   </body>
 </html>
 """ % (self.title, self.version, ajax_function(self.port), self.port, \
-       site_style(), \
+       self.port, site_style(), \
        self.port, self.title, self.version)
     
     def update(self, devices):
@@ -70,3 +71,10 @@ class site():
         output += ajax('reader',   reader(devices['rfid']))
         return output
     
+    def where(self, gps):
+        output = ajax('where', 'You are at an unknown position')
+        for place in self.db.get_places():
+            if gps.distance(place[1], place[2]) < place[3]:
+                output = ajax('where', 'You are at %s' % place[0])
+                break
+        return output

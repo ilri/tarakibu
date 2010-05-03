@@ -29,7 +29,10 @@ class admin():
           <h1>Administration</h1>
         </div>
         <div class='box main'>
-          <h3><a href=javascript:ajaxFunction('http://localhost:%s','/types')>Sample Types</a> | <a href=javascript:ajaxFunction('http://localhost:%s','/places')>Places</a> | <a href=javascript:ajaxFunction('http://localhost:%s','/tags')>Tags</a> | <a href=javascript:ajaxFunction('http://localhost:%s','/animals')>Animals</a></h3>
+          <h3><a href=javascript:ajaxFunction('http://localhost:%s','/types')>Sample Types</a> | 
+              <a href=javascript:ajaxFunction('http://localhost:%s','/places')>Places</a> | 
+              <a href=javascript:ajaxFunction('http://localhost:%s','/tags')>Tags</a> | 
+              <a href=javascript:ajaxFunction('http://localhost:%s','/animals')>Animals</a></h3>
           <hr />
           <form action='http://localhost:%s/' method='post' enctype='multipart/form-data' name='sampling'>
             <input type='hidden' name='page' value='admin'>
@@ -91,10 +94,10 @@ class admin():
         info += '</table>'
         form  = 'Add Place:'
         form += '<table>'
-        form += '<tr><th>Name</td><td><input type=\'text\' name=\'name\'></td></tr>'
-        form += '<tr><th>Latitude</td><td><input type=\'text\' name=\'latitude\'></td></tr>'
-        form += '<tr><th>Longtitude</td><td><input type=\'text\' name=\'longtitude\'></td></tr>'
-        form += '<tr><th>Radius</td><td><input type=\'text\' name=\'radius\'></td></tr>'
+        form += '<tr><th>Name</td><td><input type=\'text\' name=\'name\'></td><td></td></tr>'
+        form += '<tr><th>Latitude</td><td><input type=\'text\' name=\'latitude\'></td><td></td></tr>'
+        form += '<tr><th>Longtitude</td><td><input type=\'text\' name=\'longtitude\'></td><td></td></tr>'
+        form += '<tr><th>Radius</td><td><input type=\'text\' name=\'radius\'></td><td>km</td></tr>'
         form += '</table>'
         return ajax('info', info) + ajax('input_form', form)
     

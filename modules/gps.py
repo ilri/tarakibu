@@ -5,6 +5,7 @@
 import threading
 import serial
 import re
+import math
 from time import time, sleep
 
 class GPSReader(threading.Thread):
@@ -19,9 +20,10 @@ class GPSReader(threading.Thread):
         self.running  = True
         self.conn     = None
         self.status   = ''
+        self.distalgo = 'haversine'
         self.gga = re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),\d,(\d+),([0-9.]+),([-0-9.]+),(M),[-0-9.]+,M,,0000\*...')
-        self.unknown = {'latitude':'N/A', 'longtitude':'N/A', 'altitude':'N/A', \
-                        'satellites':'N/A', 'dilution':'N/A', 'time':'<unknown>'}
+        self.unknown ={'latitude':'N/A', 'longtitude':'N/A', 'altitude':'N/A', \
+                       'satellites':'N/A', 'dilution':'N/A', 'time':'<unknown>'}
         self.data = self.unknown
 
     def init(self):
@@ -76,11 +78,13 @@ class GPSReader(threading.Thread):
                                      'satellites':match.group(6),\
                                      'dilution':match.group(7),  \
                                      'altitude':match.group(8)}
-#4
+
                         if match.group(3) == 'S':
-                            self.data['latitude'] = '-%s' % self.data['latitude']
+                            self.data['latitude'] = '-%s' % \
+                                self.data['latitude']
                         if match.group(5) == 'W':
-                            self.data['longtitude'] = '-%s' % self.data['longtitude']
+                            self.data['longtitude'] ='-%s' % \
+                                self.data['longtitude']
                             
                         self.last = time()
                 else:
@@ -89,3 +93,34 @@ class GPSReader(threading.Thread):
                 self.conn = None
                 self.init()
         self.status = 'disconnected'
+    
+    def distance(self, lat, lon):
+        distance = ''
+        if self.status == 'running':
+            if self.distalgo == 'haversine':
+                distance = self.haversine(lat, float(self.data['latitude']),\
+                                          lon, float(self.data['longtitude']))
+            if self.distalgo == 'spherical law of cosines':
+                distance = self.spherical_law_of_cosines(\
+                                lat, float(self.data['latitude']),\
+                                lon, float(self.data['longtitude']))
+        return distance
+
+    def haversine(self, lat1, lat2, lon1, lon2):
+        R = 6371.0
+        rad = math.pi/180.0
+        dLat = (lat2*rad - lat1*rad)
+        dLon = (lon2*rad - lon1*rad)
+        a = math.sin(dLat/2) * math.sin(dLat/2) + \
+            math.cos(lat2*rad) * math.cos(lat1*rad) * \
+            math.sin(dLon/2) * math.sin(dLon/2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        return R *c
+    
+    def spherical_law_of_cosines(self, lat1, lat2, lon1, lon2):
+        R = 6371.0
+        rad = math.pi/180.0
+        d = math.acos(math.sin(lat1*rad) * math.sin(lat2*rad) + \
+                      math.cos(lat1*rad) * math.cos(lat2*rad) * \
+                      math.cos(lon1*rad - lon2*rad)) * R
+        return d

@@ -15,29 +15,32 @@ from www.simple import *
 from www.admin import *
 from www.site import *
 
-settings = {'name':'Simple Sampler', \
-            'version':'0.8.1 BETA',\
-            'port':8080,\
-            'db_host':'localhost',\
-            'db_name':'samples',\
-            'db_user':'samples',\
-            'db_pass':'54mpl35',\
-            'info_time':10}
-info     = {'mode':'animal',\
-            'active_tag':None,\
-            'msg':'Welcome to %s!' % settings['name'],\
-            'error':'',\
-            'tag':None,\
-            'tag_read':0}
+settings = {'name'      :'Simple Sampler'                   ,\
+            'version'   :'0.8.1 BETA'                       ,\
+            'port'      :8080                               ,\
+            'db_host'   :'localhost'                        ,\
+            'db_name'   :'samples'                          ,\
+            'db_user'   :'samples'                          ,\
+            'db_pass'   :'54mpl35'                          ,\
+            'info_time' :10}
+info     = {'mode'      :'animal'                           ,\
+            'active_tag':None                               ,\
+            'msg'       :'Welcome to %s!' % settings['name'],\
+            'error'     :''                                 ,\
+            'tag'       :None                               ,\
+            'tag_read'  :0}
 
-rfid     = RFIDReader('Stick Reader V3', None)
-gps      = GPSReader('/dev/ttyUSB', 38400)
-db       = SamplerDb(host=settings['db_host'], db    =settings['db_name'],\
-                     user=settings['db_user'], passwd=settings['db_pass'])
+db       = SamplerDb(host   = settings['db_host'],\
+                     db     = settings['db_name'],\
+                     user   = settings['db_user'],\
+                     passwd = settings['db_pass'])
+
 pages    = {'default':simple(settings, db),\
-            'admin':admin(settings, db),\
-            'site':site(settings, db)}
-devices  = {'rfid':rfid, 'gps':gps}
+            'admin'  :admin (settings, db),\
+            'site'   :site  (settings, db)}
+
+devices  = {'rfid':RFIDReader('Stick Reader V3', None),\
+            'gps' :GPSReader ('/dev/ttyUSB', 38400)}
 
 class SamplerServer(BaseHTTPRequestHandler):
     
@@ -68,6 +71,8 @@ class SamplerServer(BaseHTTPRequestHandler):
                 self.wfile.write(pages['admin'].animals())
             elif self.path == '/site':
                 self.wfile.write(pages['site'].site())
+            elif self.path == '/where':
+                self.wfile.write(pages['site'].where(devices['gps']))
             else:
                 self.wfile.write(pages['default'].site())
         except IOError:

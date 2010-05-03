@@ -128,8 +128,8 @@ def sanitize(string):
     return string
 
 def position(gps):
-    if gps.status == 'syncronizing':
-        return '<div style=\'color: #ff0;\'>Synchronizing</div>'
+    if gps.status == 'initializing':
+        return '<div style=\'color: #ff0;\'>Initializing</div>'
     elif gps.status == 'running':
         return '<div style=\'color: #0f0;\'>%s, %s , %s</div>' % (\
            gps.data['latitude'], gps.data['longtitude'],  gps.data['altitude'])
