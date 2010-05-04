@@ -71,8 +71,10 @@ class SamplerServer(BaseHTTPRequestHandler):
                 self.wfile.write(pages['admin'].animals())
             elif self.path == '/site':
                 self.wfile.write(pages['site'].site())
-            elif self.path == '/where':
-                self.wfile.write(pages['site'].where(devices['gps']))
+            elif self.path == '/location':
+                self.wfile.write(pages['site'].location(devices['gps']))
+            elif self.path == '/previous':
+                self.wfile.write(pages['site'].previous_samples())
             else:
                 self.wfile.write(pages['default'].site())
         except IOError:

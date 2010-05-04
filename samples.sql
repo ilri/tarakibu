@@ -16,6 +16,28 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Temporary table structure for view `active_samples`
+--
+
+DROP TABLE IF EXISTS `active_samples`;
+/*!50001 DROP VIEW IF EXISTS `active_samples`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE TABLE `active_samples` (
+  `prefix` varchar(8),
+  `barcode` varchar(32),
+  `tag_read` int(11),
+  `sample_time` timestamp,
+  `latitude` double,
+  `longtitude` double,
+  `altitude` double,
+  `hdop` float,
+  `satellites` int(11),
+  `comment` text
+) ENGINE=MyISAM */;
+SET character_set_client = @saved_cs_client;
+
+--
 -- Temporary table structure for view `active_tags`
 --
 
@@ -31,6 +53,56 @@ SET character_set_client = utf8;
   `type` varchar(32)
 ) ENGINE=MyISAM */;
 SET character_set_client = @saved_cs_client;
+
+--
+-- Table structure for table `animals`
+--
+
+DROP TABLE IF EXISTS `animals`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `animals` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `tag` varchar(11) DEFAULT NULL,
+  `date_of_birth` datetime DEFAULT NULL,
+  `sex` enum('female','male') DEFAULT NULL,
+  `weight` float DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `animals`
+--
+
+LOCK TABLES `animals` WRITE;
+/*!40000 ALTER TABLE `animals` DISABLE KEYS */;
+/*!40000 ALTER TABLE `animals` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `deleted_samples`
+--
+
+DROP TABLE IF EXISTS `deleted_samples`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `deleted_samples` (
+  `prefix` varchar(4) NOT NULL DEFAULT '',
+  `barcode` varchar(6) NOT NULL DEFAULT '',
+  `delete_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`prefix`,`barcode`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `deleted_samples`
+--
+
+LOCK TABLES `deleted_samples` WRITE;
+/*!40000 ALTER TABLE `deleted_samples` DISABLE KEYS */;
+/*!40000 ALTER TABLE `deleted_samples` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `places`
@@ -91,19 +163,16 @@ DROP TABLE IF EXISTS `samples`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `samples` (
+  `prefix` varchar(8) NOT NULL DEFAULT '',
   `barcode` varchar(32) NOT NULL DEFAULT '',
   `tag_read` int(11) DEFAULT NULL,
-  `sample_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `sample_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `latitude` double DEFAULT NULL,
-  `lat_unit` varchar(1) DEFAULT NULL,
   `longtitude` double DEFAULT NULL,
-  `lon_unit` varchar(1) DEFAULT NULL,
   `altitude` double DEFAULT NULL,
-  `alt_unit` varchar(1) DEFAULT NULL,
   `hdop` float DEFAULT NULL,
   `satellites` int(11) DEFAULT NULL,
   `comment` text,
-  `prefix` varchar(3) NOT NULL DEFAULT '',
   PRIMARY KEY (`prefix`,`barcode`),
   KEY `tag` (`tag_read`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -136,7 +205,7 @@ CREATE TABLE `tag_reads` (
   `hdop` float DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `rfid` (`rfid`)
-) ENGINE=MyISAM AUTO_INCREMENT=186 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=189 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -205,6 +274,25 @@ INSERT INTO `tags` VALUES ('900044000052788','AVD201','White','Dalton','Itag Lam
 UNLOCK TABLES;
 
 --
+-- Final view structure for view `active_samples`
+--
+
+/*!50001 DROP TABLE `active_samples`*/;
+/*!50001 DROP VIEW IF EXISTS `active_samples`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = latin1 */;
+/*!50001 SET character_set_results     = latin1 */;
+/*!50001 SET collation_connection      = latin1_swedish_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `active_samples` AS select `samples`.`prefix` AS `prefix`,`samples`.`barcode` AS `barcode`,`samples`.`tag_read` AS `tag_read`,`samples`.`sample_time` AS `sample_time`,`samples`.`latitude` AS `latitude`,`samples`.`longtitude` AS `longtitude`,`samples`.`altitude` AS `altitude`,`samples`.`hdop` AS `hdop`,`samples`.`satellites` AS `satellites`,`samples`.`comment` AS `comment` from `samples` where (not((`samples`.`prefix`,`samples`.`barcode`) in (select `deleted_samples`.`prefix` AS `prefix`,`deleted_samples`.`barcode` AS `barcode` from `deleted_samples`))) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
 -- Final view structure for view `active_tags`
 --
 
@@ -232,4 +320,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-04-03 12:17:54
+-- Dump completed on 2010-04-04  2:16:26

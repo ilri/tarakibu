@@ -17,13 +17,13 @@ class site():
       function updateSite()
       {
         ajaxFunction('http://localhost:%s/','devices')
-        ajaxFunction('http://localhost:%s/','where')
+        ajaxFunction('http://localhost:%s/','location')
         setTimeout('updateSite()', 500)
       }
     </script>  
     %s
   </head>
-  <body onLoad="updateSite();">
+  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','previous');">
     <div class='site'>
       <div class='left'>
         <div class='box top'>
@@ -33,7 +33,7 @@ class site():
           <h2>Latest Samples</h2>
           <hr />
           <form action='http://localhost:%s/' method='post' enctype='multipart/form-data' name='sampling'>
-            <input type='hidden' name='page' value='admin'>
+            <input type='hidden' name='page' value='site'>
             <div class='scroller input' id='input_form'></div>
             <hr />
             <div class='submitbutton'>
@@ -62,19 +62,36 @@ class site():
   </body>
 </html>
 """ % (self.title, self.version, ajax_function(self.port), self.port, \
-       self.port, site_style(), \
+       self.port, site_style(), self.port, \
        self.port, self.title, self.version)
+
+    def parse_form(self, form, info, devices):
+        samples = {}
+        for label in form:
+            if label != 'page':
+                tag = label[:9]
+                if tag not in samples.keys():
+                    samples[tag] = ['',('delete', False)]
+                if label[9:] == 'delete':
+                    samples[tag][1] = ('delete', True)
+                else:
+                    samples[tag][0] = ('comment', form[label][0])
+        for label in samples:
+            self.db.update_samples(label, samples[label])
     
-    def update(self, devices):
-        output = ''
-        output += ajax('position', position(devices['gps']))
-        output += ajax('reader',   reader(devices['rfid']))
-        return output
-    
-    def where(self, gps):
-        output = ajax('where', 'You are at an unknown position')
+    def location(self, gps):
+        output = 'You are at an unknown position'
         for place in self.db.get_places():
             if gps.distance(place[1], place[2]) < place[3]:
-                output = ajax('where', 'You are at %s' % place[0])
+                output = 'You are at %s' % place[0]
                 break
-        return output
+        return ajax('where', output)
+    
+    def previous_samples(self):
+        output  = '<table>'
+        output += '<tr><th>Sample</td><th>Comment</td><th>Delete</td></tr>'
+        for sample in self.db.get_latest_samples():
+            output += '<tr><td>%s%s</td><td><input type=\'text\' name=\'%s%s\' value=\'%s\'></td><td><input type=\'checkbox\' name=\'%s%sdelete\'></td></tr>' % \
+                (sample[0], sample[1], sample[0], sample[1], sample[3], sample[0], sample[1])
+        output += '</table>'
+        return ajax('input_form', output)

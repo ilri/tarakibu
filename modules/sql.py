@@ -1,9 +1,11 @@
 
 import MySQLdb
+import re
 
 class SamplerDb():
     def __init__(self, host, user, passwd, db):
         self.error = None
+        self.prefixpattern = re.compile('([a-zA-Z])*')
         try:
             self.conn = MySQLdb.connect(host=host,user=user,passwd=passwd,db=db)
             self.db = self.conn.cursor()
@@ -117,3 +119,28 @@ class SamplerDb():
     def get_animals(self):
         return []
     
+    def get_latest_samples(self):
+        output = []
+        try:
+            self.db.execute('SELECT prefix, barcode, sample_time, comment FROM active_samples ORDER BY sample_time DESC;')
+            for sample in self.db.fetchall():
+                output.append(sample)
+        except:
+            output.append('Could not load latest samples')
+        return output
+    
+    def update_samples(self, tag, info):
+        match = self.prefixpattern.match(tag)
+        prefix = match.group(0)
+        barcode = tag[len(prefix):]
+        try:
+            self.db.execute('UPDATE samples SET comment = "%s" WHERE prefix = "%s" AND barcode = "%s";' % \
+                (info[0][1], prefix, barcode))
+        except:
+            raise Exception('Could not update samples.')
+        if info[1][1]:
+            try:
+                self.db.execute('INSERT INTO deleted_samples(prefix, barcode) VALUES ("%s", "%s");' % \
+                    (prefix, barcode))
+            except:
+                raise Exception('Could not delete sample.')
