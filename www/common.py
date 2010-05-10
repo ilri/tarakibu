@@ -37,12 +37,12 @@ h1 {
   text-align: center;
 }
 h2 {
-  font-size: 1em;
+  font-size: 1.2em;
   color: #fff;
   margin: 0 0 10px 0;
 }
 h3 {
-  font-size: 1em;
+  font-size: 0.9em;
   text-align: justify;
   margin: 5px;
 }

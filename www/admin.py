@@ -151,4 +151,12 @@ class admin():
             self.db.replace_tag(form['tag'][0], form['rfid'][0], \
                     form['color'][0], form['supplier'][0], form['tag_type'][0],\
                     form['replace'][0])
+        elif 'sex' in form:
+            self.db.replace_animal(form['replace'][0],
+                                   form['new_tag'][0],
+                                   form['date_of_birth'][0],
+                                   form['sex'][0],
+                                   form['owner'][0],
+                                   form['weight'][0],
+                                   form['comment'][0])
         return ''

@@ -47,7 +47,7 @@ class SamplerServer(BaseHTTPRequestHandler):
     def do_GET(self):
         global pages, devices, settings, info
         try:
-            sys.stderr = open(os.devnull,'w') # tell the server to shut up
+#            sys.stderr = open(os.devnull,'w') # tell the server to shut up
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()

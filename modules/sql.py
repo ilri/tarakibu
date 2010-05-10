@@ -161,3 +161,13 @@ class SamplerDb():
         except:
             output.append(('Could','not','load','animals'))
         return output
+    
+    def replace_animal(self, replace, new_tag, date_of_birth, sex, 
+                       owner, weight, comment):
+        self.db.execute('INSERT INTO animals (tag, date_of_birth, sex, owner) VALUES ("%s", "%s", "%s", "%s");' % (new_tag, date_of_birth, sex, owner))
+        self.db.execute('INSERT INTO animal_measures (animal, weight, comment) VALUES ("%s", "%s", "%s");' % (new_tag, weight, comment))
+        self.db.execute('SELECT id FROM animals WHERE tag = "%s";' % new_tag)
+        new_tag = self.db.fetchall()
+        self.db.execute('SELECT id FROM animals WHERE tag = "%s";' % replace)
+        replace = self.db.fetchall()
+        self.db.execute('INSERT INTO animal_replacements (new_animal, replaces_animal) VALUES ("%s", "%s");' % (int(new_tag[0][0]), int(replace[0][0])))
