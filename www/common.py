@@ -37,7 +37,7 @@ h1 {
   text-align: center;
 }
 h2 {
-  font-size: 1.2em;
+  font-size: 1.1em;
   color: #fff;
   margin: 0 0 10px 0;
 }
@@ -68,7 +68,7 @@ a {
 }
 .box.top table {
   margin: 10px 0 0 0;
-  font-size: 1em;
+  font-size: 0.9em;
 }
 .box.main {
   margin: 10px 0 0 0;
@@ -131,7 +131,7 @@ def position(gps):
     if gps.status == 'initializing':
         return '<div style=\'color: #ff0;\'>Initializing</div>'
     elif gps.status == 'running':
-        return '<div style=\'color: #0f0;\'>%s, %s , %s</div>' % (\
+        return '<div style=\'color: #0f0;\'>%s, %s, %s</div>' % (\
            gps.data['latitude'], gps.data['longtitude'],  gps.data['altitude'])
     return '<div style=\'color: #f00;\'>Out of Sync</div>'
 
