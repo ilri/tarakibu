@@ -123,14 +123,22 @@ class admin():
     
     def animals(self):
         info  = '<table>'
-        info += '</table>'
+        info += '<tr><th>Tag</td><th>Sex</td><th>Owner</td><th>Location</td></tr>'
         form  = 'Replace animal:<select name=\'replace\'>'
         for animal in self.db.get_animals():
+            info += '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % animal
             form += '<option name=\'%s\'>%s</option>' % (animal[0], animal[0])
         form += '</select><br>'
         form += 'Replace with:'
         form += '<table>'
+        form += '<tr><td>New tag:</td><td><input type=\'text\' name=\'new_tag\'></td><td></td></tr>'
+        form += '<tr><td>Date of Birth</td><td><input type=\'text\' name=\'date_of_birth\'></td><td>ex. 2010-01-01</td></tr>'
+        form += '<tr><td>Gender</td><td><select name=\'sex\'><option name=\'female\'>female</option><option name=\'male\'>male</option></select></td><td></td></tr>'
+        form += '<tr><td>Owner</td><td><input type=\'text\' name=\'owner\'></td><td></td></tr>'
+        form += '<tr><td>Weight</td><td><input type=\'text\' name=\'weight\'></td><td></td></tr>'
+        form += '<tr><td>Comment</td><td><input type=\'text\' name=\'comment\'></td><td></td></tr>'
         form += '</table>'
+        info += '</table>'
         return ajax('info', info) + ajax('input_form', form)
     
     def parse_form(self, form, info, devices):

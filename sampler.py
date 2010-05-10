@@ -102,7 +102,6 @@ for device in devices:
 server = HTTPServer(('', settings['port']), SamplerServer)
 print '* %s web server running on port %s.' % (settings['name'],\
                                                settings['port'])
-
 try:
     server.serve_forever()
 except:

@@ -117,7 +117,14 @@ class SamplerDb():
         self.db.execute(query)
     
     def get_animals(self):
-        return []
+        output = []
+        try:
+            self.db.execute('SELECT tag, sex, owner, location FROM active_animals;')
+            for animal in self.db.fetchall():
+                output.append(animal)
+        except:
+            output.append('Could not load animals')
+        return output
     
     def get_latest_samples(self):
         output = []
@@ -144,3 +151,13 @@ class SamplerDb():
                     (prefix, barcode))
             except:
                 raise Exception('Could not delete sample.')
+    
+    def get_animals_at_location(self, location):
+        output = []
+        try:
+            self.db.execute('SELECT tag, sex, owner, location FROM active_animals WHERE location = "%s";' % location)
+            for animal in self.db.fetchall():
+                output.append(animal)
+        except:
+            output.append('Could not load animals')
+        return output

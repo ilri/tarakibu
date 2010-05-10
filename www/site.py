@@ -80,12 +80,18 @@ class site():
             self.db.update_samples(label, samples[label])
     
     def location(self, gps):
-        output = 'You are at an unknown position'
+        location = 'an unknown position'
         for place in self.db.get_places():
             if gps.distance(place[1], place[2]) < place[3]:
-                output = 'You are at %s' % place[0]
+                location = place[0]
                 break
-        return ajax('where', output)
+        info  = '<h3>Known animals at this Location</h3>'
+        info += '<table>'
+        info += '<tr><th>Tag</td><th>Sex</td><th>Owner</td><th>Location</td></tr>'
+        for animal in self.db.get_animals_at_location(location):
+            info += '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % animal
+        info += '</table>'
+        return ajax('where', 'You are at %s' % location) + ajax('info', info)
     
     def previous_samples(self):
         output  = '<table>'
