@@ -81,7 +81,7 @@ class SamplerDb():
             for sample_type in data:
                 output.append(sample_type)
         except:
-            output.append('Could not load sample types')
+            output.append(('Could not load','sample types'))
         return output 
     
     def get_tags(self):
@@ -91,7 +91,7 @@ class SamplerDb():
             for tag in self.db.fetchall():
                 output.append(tag)
         except:
-            output.append('Could not load tags')
+            output.append(('Could','not','load','tags',''))
         return output
     
     def insert_prefix(self, prefix, description):
@@ -105,7 +105,7 @@ class SamplerDb():
             for place in self.db.fetchall():
                 output.append(place)
         except:
-            output.append('Could not load places')
+            output.append(('Could','not','load','places'))
         return output
     
     def insert_place(self, name, latitude, longtitude, radius):
@@ -123,7 +123,7 @@ class SamplerDb():
             for animal in self.db.fetchall():
                 output.append(animal)
         except:
-            output.append('Could not load animals')
+            output.append(('Could','not','load','animals'))
         return output
     
     def get_latest_samples(self):
@@ -133,7 +133,7 @@ class SamplerDb():
             for sample in self.db.fetchall():
                 output.append(sample)
         except:
-            output.append('Could not load latest samples')
+            output.append(('Could not','load','latest','samples'))
         return output
     
     def update_samples(self, tag, info):
@@ -159,5 +159,5 @@ class SamplerDb():
             for animal in self.db.fetchall():
                 output.append(animal)
         except:
-            output.append('Could not load animals')
+            output.append(('Could','not','load','animals'))
         return output
