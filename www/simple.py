@@ -1,10 +1,10 @@
 from common import *
 from time import time
 
-errors = {'label':'Could not verify tag label. Verify that this animal is part of the sampling process and try again',\
-          'unknown_tag':'The tag you have input is not featured in the animal database. This animal is not part of the sampling program.',\
-          'invalid_barcode':'Already scanned or not a valid barcode',\
-          'animal_no_gps':'Cannot input animal without gps position.',\
+errors = {'label':'Could not verify tag label. Verify that this animal is part of the sampling process and try again',
+          'unknown_tag':'The tag you have input is not featured in the animal database. This animal is not part of the sampling program.',
+          'invalid_barcode':'Already scanned or not a valid barcode',
+          'animal_no_gps':'Cannot input tag read without gps position.',
           'sample_no_gps':'Cannot input sample without gps position.'}
 
 class simple():
@@ -32,11 +32,11 @@ class simple():
                 info['active_tag'] = self.db.tag_to_label(\
                                                     devices['rfid'].data)[0]
                 if info['active_tag']:
-                    self.db.insert_tag_read(info['active_tag'],\
+                    self.db.insert_tag_read(info['active_tag'],
                                             devices['gps'].data)
                     info['mode'] = 'sample'
                     devices['rfid'].data = None
-                    output += ajax('input_form',\
+                    output += ajax('input_form',
                               self.sample_input(info['active_tag'], self.port))
                     output += self.focus('sample')
             except:
@@ -50,25 +50,34 @@ class simple():
                 pass
         return output
 
-    def new_animal(self, info):
-        info['mode'] = 'animal'
+    def new_animal(self, info, settings):
+        info['mode']       = 'animal'
         info['active_tag'] = None
-        output = ''
-        output += ajax('input_form', self.animal_input())
-        output += self.focus('animal')
-        info['error'] = ''
-        return output
+        info['error']      = ''
+        return self.input_form(info, settings)
 
     def input_form(self, info, settings):
         output = ''
         if info['mode'] == 'animal':
-            output += ajax('input_form', self.animal_input())
-            output += self.focus('animal')
+            if info['target'] == 'livestock':
+                output += ajax('input_form', self.animal_input())
+                output += self.focus('animal')
+            else:
+                output += ajax('input_form', self.random_input())
+                output += self.focus('species')
         else:
-            output += ajax('input_form', self.sample_input(info['active_tag'],\
+            output += ajax('input_form', self.sample_input(info['active_tag'],
                                                            settings['port']))
-        output += self.focus('sample')
+            output += self.focus('sample')
         return output
+
+    def livestock_form(self, info, settings):
+        info['target'] = 'livestock'
+        return self.input_form(info, settings)
+
+    def random_form(self, info, settings):
+        info['target'] = 'random'
+        return self.input_form(info, settings)
 
     def site(self):
         return """<html>
@@ -91,7 +100,8 @@ class simple():
           <h1>%s</h1>
         </div>
         <div class='box main'>
-          <h2>Sample Input</h2>
+          <h2><a href=javascript:ajaxFunction('http://localhost:%s','/input_livestock')>Livestock</a>|
+              <a href=javascript:ajaxFunction('http://localhost:%s','/input_random')>Random</a></h2>
           <hr />
           <form action='http://localhost:%s/' method='post' enctype='multipart/form-data' name='sampling'>
             <input type='hidden' name='page' value='default'>
@@ -124,10 +134,29 @@ class simple():
   </body>
 </html>
 """ % (self.title, self.version, ajax_function(self.port), self.port, \
-       site_style(), self.port, self.title, self.port, self.title, self.version)
+       site_style(), self.port, self.title, self.port, self.port, self.port, self.title, self.version)
 
     def focus(self, target):
         return 'document.sampling.%s.focus();' % target
+
+    def random_input(self):
+        return """
+<table>
+<tr><td>Species:</td><td><select name=\'species\'>%s</select></td></tr>
+<tr><td>Animal ID:</td><td><input type='text' name='animal_id' value='%s'></td></tr>
+<tr><td>Approximate Age:</td><td><input type='text' name='age'></td></tr>
+<tr><td>Sex</td><td><select name=\'sex\'><option name=\'female\'>female</option><option name=\'male\'>male</option></select></td></tr>
+<tr><td>Owner:</td><td><input type='text' name='owner'></td></tr>
+<tr><td>Location:</td><td><input type='text' name='location'></td></tr>
+<tr><td>Comment:</td><td><input type='text' name='comment'></td></tr>
+</table>
+""" % (self.get_species(), self.db.get_next_animal_id())
+
+    def get_species(self):
+        output = ''
+        for animal in self.db.get_species():
+            output += '<option value=\'%s\'>%s</option>' % (animal[0], animal[0])
+        return output
 
     def animal_input(self):
         return """Animal tag: <input type='text' name='animal' id='animal'>"""
@@ -145,10 +174,13 @@ Current Animal: %s
 """ % (title.upper(), port) 
 
     def parse_form(self, form, info, devices):
-        if 'animal' in form:
+        if 'animal' in form or 'species' in form:
             if devices['gps'].status == 'running':
                 try:
-                    self.input_animal(form, info, devices)
+                    if 'species' in form:
+                        self.input_random(form, info, devices)
+                    else:
+                        self.input_animal(form, info, devices)
                 except:
                     info['error'] = errors['unknown_tag']
             else:
@@ -176,5 +208,15 @@ Current Animal: %s
             else:
                 info['error'] = errors['invalid_barcode']
         else:
-            info['error'] = errors['no_gps']
+            info['error'] = errors['sample_no_gps']
+    
+    def input_random(self, form, info, devices):
+        self.db.insert_tag_read(form['animal_id'][0], devices['gps'].data)
+        if self.db.input_random_animal(form):
+            info['mode'] = 'sample'
+            info['msg'] = 'Input samples using the barcode reader or keyboard.'
+            info['active_tag'] = form['animal_id'][0]
+            info['error'] = ''
+        else:
+            raise Exception('Could not insert animal into database')
     

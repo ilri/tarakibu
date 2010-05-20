@@ -15,31 +15,32 @@ from www.simple import *
 from www.admin import *
 from www.site import *
 
-settings = {'name'      :'Simple Sampler'                   ,\
-            'version'   :'0.8.1 BETA'                       ,\
-            'port'      :8080                               ,\
-            'db_host'   :'localhost'                        ,\
-            'db_name'   :'samples'                          ,\
-            'db_user'   :'samples'                          ,\
-            'db_pass'   :'54mpl35'                          ,\
+settings = {'name'      :'Simple Sampler'                   ,
+            'version'   :'0.8.1 BETA'                       ,
+            'port'      :8080                               ,
+            'db_host'   :'localhost'                        ,
+            'db_name'   :'samples'                          ,
+            'db_user'   :'samples'                          ,
+            'db_pass'   :'54mpl35'                          ,
             'info_time' :10}
-info     = {'mode'      :'animal'                           ,\
-            'active_tag':None                               ,\
-            'msg'       :'Welcome to %s!' % settings['name'],\
-            'error'     :''                                 ,\
-            'tag'       :None                               ,\
+info     = {'mode'      :'animal'                           ,
+            'target'    :'livestock'                        ,
+            'active_tag':None                               ,
+            'msg'       :'Welcome to %s!' % settings['name'],
+            'error'     :''                                 ,
+            'tag'       :None                               ,
             'tag_read'  :0}
 
-db       = SamplerDb(host   = settings['db_host'],\
-                     db     = settings['db_name'],\
-                     user   = settings['db_user'],\
+db       = SamplerDb(host   = settings['db_host'],
+                     db     = settings['db_name'],
+                     user   = settings['db_user'],
                      passwd = settings['db_pass'])
 
-pages    = {'default':simple(settings, db),\
-            'admin'  :admin (settings, db),\
+pages    = {'default':simple(settings, db),
+            'admin'  :admin (settings, db),
             'site'   :site  (settings, db)}
 
-devices  = {'rfid':RFIDReader('Stick Reader V3', None),\
+devices  = {'rfid':RFIDReader('Stick Reader V3', None),
             'gps' :GPSReader ('/dev/ttyUSB', 38400)}
 
 class SamplerServer(BaseHTTPRequestHandler):
@@ -47,16 +48,20 @@ class SamplerServer(BaseHTTPRequestHandler):
     def do_GET(self):
         global pages, devices, settings, info
         try:
-#            sys.stderr = open(os.devnull,'w') # tell the server to shut up
+            sys.stderr = open(os.devnull,'w') # tell the server to shut up
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             if self.path == '/update':
                 self.wfile.write(pages['default'].update(devices, info))
             elif self.path == '/new_animal':
-                self.wfile.write(pages['default'].new_animal(info))
+                self.wfile.write(pages['default'].new_animal(info, settings))
             elif self.path == '/input_form':
                 self.wfile.write(pages['default'].input_form(info, settings))
+            elif self.path == '/input_random':
+                self.wfile.write(pages['default'].random_form(info, settings))
+            elif self.path == '/input_livestock':
+                self.wfile.write(pages['default'].livestock_form(info,settings))
             elif self.path == '/devices':
                 self.wfile.write(pages['admin'].update(devices))
             elif self.path == '/admin':

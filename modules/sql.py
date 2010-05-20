@@ -5,169 +5,238 @@ import re
 class SamplerDb():
     def __init__(self, host, user, passwd, db):
         self.error = None
-        self.prefixpattern = re.compile('([a-zA-Z])*')
         try:
-            self.conn = MySQLdb.connect(host=host,user=user,passwd=passwd,db=db)
-            self.db = self.conn.cursor()
+            self.host = host
+            self.usr  = user
+            self.pwd  = passwd
+            self.db   = db
         except:
             raise
     
+    def _query(self, query):
+        try:
+            connection = MySQLdb.connect(user = self.usr,  passwd = self.pwd,
+                                         host = self.host, db     = self.db)
+            db = connection.cursor()
+        except:
+            print 'Exception: Could not connect to Database'
+            raise
+        try:
+            db.execute(query)
+            return db.fetchall()
+        except:
+            print 'Exception: Malformed Query "%s"' % query
+            raise
+    
+    def split_barcode(self, barcode):
+        barcode = barcode.upper()
+        prefix = ''
+        for prefix_test in self._query('SELECT prefix FROM sample_types;'):
+            if barcode.startswith(prefix_test[0]):
+                prefix = prefix_test[0].upper()
+                break
+        if not prefix:
+            raise Exception('Unknown prefix')
+        barcode = barcode[len(prefix):]
+        return prefix, barcode
+
     def tag_to_label(self, tag):
-        self.db.execute('SELECT label FROM active_tags WHERE rfid = "%s";' % tag)
-        return self.db.fetchone()
+        return self._query('SELECT label FROM active_tags \
+                                   WHERE rfid = "%s";' % tag)
 
     def tag_to_id(self, tag):
-        self.db.execute('SELECT id FROM tag_reads WHERE rfid = "%s" ORDER BY read_time DESC LIMIT 1;' % tag)
-        return self.db.fetchone()[0]
+        return self._query('SELECT id FROM tag_reads \
+                                   WHERE rfid = "%s" \
+                                   ORDER BY read_time DESC LIMIT 1;' % tag.upper())[0]
 
     def verify_sample(self, barcode):
-        self.db.execute('SELECT prefix FROM sample_types;')
-        prefix = self.db.fetchall()
+        prefix = self._query('SELECT prefix FROM sample_types;')
         for test in prefix:
             if test[0] == barcode[:len(test[0])].upper() and len(barcode) == 9:
-                self.db.execute('SELECT barcode FROM samples WHERE barcode="%s" AND prefix="%s";' % (barcode[3:], barcode[:3].upper()))
-                if self.db.fetchone():
+                if self._query('SELECT barcode FROM samples \
+                                       WHERE barcode="%s" AND prefix="%s";' % \
+                                      (barcode[len(test[0]):],
+                                       barcode[:len(test[0])].upper())):
                     return False
                 return True
         return False
 
     def verify_tag(self, tag):
-        self.db.execute('SELECT label FROM active_tags WHERE label="%s";' % tag)
-        return self.db.fetchone()
+        return self._query('SELECT label FROM active_tags \
+                                  WHERE label="%s";' % tag)
 
     def insert_tag_read(self, tag, pos):
-        self.db.execute('INSERT INTO tag_reads (rfid, latitude, longtitude, altitude, satellites, hdop) VALUES ("%s", "%s", "%s", "%s", "%s", "%s");' % (tag, pos['latitude'], pos['longtitude'], pos['altitude'], pos['satellites'], pos['dilution']))
+        self._query('INSERT INTO tag_reads                     \
+                            (rfid,     latitude,   longtitude, \
+                             altitude, satellites, hdop)       \
+                     VALUES ("%s", "%s", "%s", "%s", "%s", "%s");' % \
+                            (tag.upper(), pos['latitude'], pos['longtitude'],\
+                                  pos['altitude'], pos['satellites'],\
+                                  pos['dilution']))
 
     def insert_sample(self, barcode, tag, pos, info):
-        tag_read = self.tag_to_id(tag)
-        try:
-            self.db.execute('INSERT INTO samples (prefix, barcode, tag_read, latitude, longtitude, altitude, satellites, hdop, comment) VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s");' % (barcode[0:3].upper(), barcode[3:], tag_read, pos['latitude'], pos['longtitude'], pos['altitude'], pos['satellites'], pos['dilution'], info))
-        except Exception as e:
-            print e
-            self.error = 'Could not insert sample. Returned %s' % e
+        tag_read = self.tag_to_id(tag)[0]
+        prefix, barcode = self.split_barcode(barcode)
+        self._query('INSERT INTO samples (prefix,     barcode,    tag_read, \
+                                          latitude,   longtitude, altitude, \
+                                          satellites, hdop,       comment)  \
+                     VALUES ("%s","%s","%s","%s","%s","%s","%s","%s","%s");' % \
+                            (prefix, barcode, tag_read, 
+                             pos['latitude'], pos['longtitude'], 
+                             pos['altitude'], pos['satellites'],
+                             pos['dilution'], info))
     
     def get_samples(self, rfid):
         tag_read = self.tag_to_id(rfid)
-        self.db.execute('SELECT prefix FROM samples WHERE tag_read = "%s";'\
-                         % tag_read)
         output = {}
-        data = self.db.fetchall()
+        data = self._query('SELECT prefix FROM samples WHERE tag_read = "%s";'\
+                           % tag_read)
         for prefix in data:
             output[prefix[0]] = data.count(prefix)
-
         return output
     
     def sample_info(self, tag):
         limit = 20
         info = 'No Sample Information Available'
         if tag:
-            info = 'Animal %s<hr />Latest Samples:<br />' % tag.upper()
-            try:
-                self.db.execute('SELECT prefix, barcode, sample_time FROM samples WHERE tag_read IN (SELECT id FROM tag_reads WHERE rfid = "%s" ORDER BY read_time ASC) ORDER BY sample_time DESC LIMIT %s;' % (tag,limit))
-                info += '<table>'
-                for sample in self.db.fetchall():
-                    info += '<tr><td>%s%s</td><td>%s</td></tr>' % \
-                             (sample[0], sample[1], sample[2])
-                info += '</table>'
-            except Exception as e:
-                print e 
+            info  = 'Animal %s<hr />Latest Samples:<br />' % tag.upper()
+            info += '<table>'
+            for sample in self._query(\
+               'SELECT prefix, barcode, sample_time FROM samples        \
+                       WHERE tag_read IN                                \
+                            (SELECT id FROM tag_reads WHERE rfid = "%s" \
+                                       ORDER BY read_time ASC)          \
+                       ORDER BY sample_time DESC LIMIT %s;' % (tag,limit)):
+                info += '<tr><td>%s%s</td><td>%s</td></tr>' % \
+                    (sample[0], sample[1], sample[2])
+            info += '</table>'
         return info
     
     def get_sample_types(self):
         output = []
-        try:
-            self.db.execute('SELECT prefix, description FROM sample_types;')
-            data = self.db.fetchall()
+        data = self._query('SELECT prefix, description FROM sample_types;')
+        if data:
             for sample_type in data:
                 output.append(sample_type)
-        except:
+        else:
             output.append(('Could not load','sample types'))
         return output 
     
     def get_tags(self):
         output = []
-        try:
-            self.db.execute('SELECT label,rfid,color,supplier,type FROM active_tags ORDER BY label;')
-            for tag in self.db.fetchall():
+        data = self._query('SELECT label,rfid,color,supplier,type \
+                                   FROM active_tags ORDER BY label;')
+        if data:
+            for tag in data:
                 output.append(tag)
-        except:
+        else:
             output.append(('Could','not','load','tags',''))
         return output
     
     def insert_prefix(self, prefix, description):
         prefix = prefix.upper()
-        self.db.execute('INSERT INTO sample_types(prefix, description) VALUES ("%s", "%s");' % (prefix, description))
+        self._query('INSERT INTO sample_types(prefix, description) \
+                            VALUES ("%s", "%s");' % (prefix, description))
 
     def get_places(self):
         output = []
-        try:
-            self.db.execute('SELECT name, latitude, longtitude, radius FROM places ORDER BY name')
-            for place in self.db.fetchall():
+        data = self._query('SELECT name, latitude, longtitude, radius \
+                                   FROM places ORDER BY name')
+        if data:
+            for place in data:
                 output.append(place)
-        except:
+        else:
             output.append(('Could','not','load','places'))
         return output
     
     def insert_place(self, name, latitude, longtitude, radius):
-        self.db.execute('INSERT INTO places(name, latitude, longtitude, radius) VALUES ("%s",%s,%s,%s);' % (name, latitude, longtitude, radius))
+        self._query('INSERT INTO places(name, latitude, longtitude, radius) \
+                            VALUES ("%s",%s,%s,%s);' % \
+                           (name, latitude, longtitude, radius))
 
     def replace_tag(self, tag, rfid, color, supplier, tag_type, replace):
-        query = 'INSERT INTO tag_replacements (rfid, label, color, supplier, type, replaces) VALUES ("%s", "%s", "%s", "%s", "%s", "%s");' % (rfid, tag.upper(), color, supplier, tag_type, replace.upper())
-        print query
-        self.db.execute(query)
+        self._query('INSERT INTO tag_replacements                          \
+                            (rfid, label, color, supplier, type, replaces) \
+                            VALUES ("%s", "%s", "%s", "%s", "%s", "%s");' %\
+                            (rfid, tag.upper(), color, supplier, tag_type, 
+                             replace.upper()))
     
     def get_animals(self):
         output = []
-        try:
-            self.db.execute('SELECT tag, sex, owner, location FROM active_animals;')
-            for animal in self.db.fetchall():
+        data = self._query('SELECT tag,sex,owner,location FROM active_animals;')
+        if data:
+            for animal in data:
                 output.append(animal)
-        except:
+        else:
             output.append(('Could','not','load','animals'))
         return output
     
     def get_latest_samples(self):
         output = []
-        try:
-            self.db.execute('SELECT prefix, barcode, sample_time, comment FROM active_samples ORDER BY sample_time DESC;')
-            for sample in self.db.fetchall():
+        data = self._query('SELECT barcode, sample_time, comment \
+                                   FROM active_samples           \
+                                   ORDER BY sample_time DESC LIMIT 50;')
+        if data:
+            for sample in data:
                 output.append(sample)
-        except:
+        else:
             output.append(('Could not','load','latest','samples'))
         return output
     
     def update_samples(self, tag, info):
-        match = self.prefixpattern.match(tag)
-        prefix = match.group(0)
+        prefix = ''
+        for prefix_test in self._query('SELECT prefix FROM sample_types;'):
+            if tag.startswith(prefix_test[0]):
+                prefix = prefix_test[0]
+                break
+        if not prefix:
+            raise Exception('Unknown prefix')
         barcode = tag[len(prefix):]
-        try:
-            self.db.execute('UPDATE samples SET comment = "%s" WHERE prefix = "%s" AND barcode = "%s";' % \
-                (info[0][1], prefix, barcode))
-        except:
-            raise Exception('Could not update samples.')
+        self._query('UPDATE samples SET comment = "%s"                 \
+                            WHERE prefix = "%s" AND barcode = "%s";' % \
+                           (info[0][1], prefix, barcode))
         if info[1][1]:
-            try:
-                self.db.execute('INSERT INTO deleted_samples(prefix, barcode) VALUES ("%s", "%s");' % \
-                    (prefix, barcode))
-            except:
-                raise Exception('Could not delete sample.')
+            self.db._query('INSERT INTO deleted_samples(prefix, barcode) \
+                                   VALUES ("%s", "%s");' % (prefix, barcode))
     
     def get_animals_at_location(self, location):
         output = []
-        try:
-            self.db.execute('SELECT tag, sex, owner, location FROM active_animals WHERE location = "%s";' % location)
-            for animal in self.db.fetchall():
+        data = self._query('SELECT tag, sex, owner, location \
+                                   FROM active_animals       \
+                                   WHERE location = "%s";' % location)
+        if data:
+            for animal in data:
                 output.append(animal)
-        except:
+        else:
             output.append(('Could','not','load','animals'))
         return output
     
-    def replace_animal(self, replace, new_tag, date_of_birth, sex, 
-                       owner, weight, comment):
-        self.db.execute('INSERT INTO animals (tag, date_of_birth, sex, owner) VALUES ("%s", "%s", "%s", "%s");' % (new_tag, date_of_birth, sex, owner))
-        self.db.execute('INSERT INTO animal_measures (animal, weight, comment) VALUES ("%s", "%s", "%s");' % (new_tag, weight, comment))
-        self.db.execute('SELECT id FROM animals WHERE tag = "%s";' % new_tag)
-        new_tag = self.db.fetchall()
-        self.db.execute('SELECT id FROM animals WHERE tag = "%s";' % replace)
-        replace = self.db.fetchall()
-        self.db.execute('INSERT INTO animal_replacements (new_animal, replaces_animal) VALUES ("%s", "%s");' % (int(new_tag[0][0]), int(replace[0][0])))
+    def replace_animal(self, replace, new_tag, date_of_birth, 
+                       sex,  owner,   weight,  comment):
+        self._query('INSERT INTO animals (tag, date_of_birth, sex, owner) \
+                            VALUES ("%s", "%s", "%s", "%s");' %           \
+                           (new_tag, date_of_birth, sex, owner))
+        self._query('INSERT INTO animal_measures (animal, weight, comment)\
+                            VALUES ("%s", "%s", "%s");' %                 \
+                           (new_tag, weight, comment))
+        self._query('INSERT INTO animal_replacements                      \
+                            (new_animal, replaces_animal)                 \
+                            VALUES ("%s", "%s");' %                       \
+                           (new_tag, replace))
+    
+    def get_next_animal_id(self):
+        next = self._query('SELECT MAX(CAST(SUBSTR(tag FROM 4) AS UNSIGNED)) + 1 AS max FROM animals;')[0][0]
+        if not next:
+            next = 1000
+        return 'AVD%s' % 
+    
+    def input_random_animal(self, form):
+        try:
+            self._query('INSERT INTO animals (tag, sex, species, owner, location) VALUES ("%s", "%s", "%s", "%s", "%s");' % (form['animal_id'][0], form['sex'][0], form['species'][0], form['owner'][0], form['location'][0]))
+            self._query('INSERT INTO animal_measures (animal, approximate_age, comment) VALUES ("%s", "%s", "%s");' % (form['animal_id'][0], form['age'][0], form['comment'][0]))
+        except:
+            raise
+        return True
+
+    def get_species(self):
+        return self._query('SELECT common_name FROM species ORDER BY common_name DESC;');

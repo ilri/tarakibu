@@ -91,13 +91,16 @@ class site():
         for animal in self.db.get_animals_at_location(location):
             info += '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % animal
         info += '</table>'
-        return ajax('where', 'You are at %s' % location) + ajax('info', info)
+        output = ajax('where', 'You are at %s' % location)
+        if location != 'an unknown position':
+            output += ajax('info', info)
+        return output
     
     def previous_samples(self):
         output  = '<table>'
         output += '<tr><th>Sample</td><th>Comment</td><th>Delete</td></tr>'
         for sample in self.db.get_latest_samples():
-            output += '<tr><td>%s%s</td><td><input type=\'text\' name=\'%s%s\' value=\'%s\'></td><td><input type=\'checkbox\' name=\'%s%sdelete\'></td></tr>' % \
-                (sample[0], sample[1], sample[0], sample[1], sample[3], sample[0], sample[1])
+            output += '<tr><td>%s</td><td><input type=\'text\' name=\'%s\' value=\'%s\'></td><td><input type=\'checkbox\' name=\'%sdelete\'></td></tr>' % \
+                (sample[0], sample[0], sample[2], sample[0])
         output += '</table>'
         return ajax('input_form', output)
