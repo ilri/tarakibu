@@ -60,8 +60,8 @@ class GPSReader(threading.Thread):
             else:
                 self.status = 'running'
             try:
+                sleep(0.5)
                 if not self.conn.open():
-                    sleep(1)
                     raw_data = self.conn.readline()
                     match = self.gga.match(raw_data)
                     if match:

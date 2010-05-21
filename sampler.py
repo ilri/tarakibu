@@ -5,6 +5,7 @@ import sys
 import os
 import MySQLdb
 import cgi
+import traceback
 from time import sleep, time
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from modules.rfid import RFIDReader
@@ -107,10 +108,12 @@ for device in devices:
 server = HTTPServer(('', settings['port']), SamplerServer)
 print '* %s web server running on port %s.' % (settings['name'],\
                                                settings['port'])
+
 try:
     server.serve_forever()
 except:
     server.socket.close()
+    traceback.print_exc(file=sys.stdout)
 
 print '\n* Shutting down.'
 

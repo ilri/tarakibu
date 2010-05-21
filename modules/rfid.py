@@ -34,12 +34,12 @@ class RFIDReader(threading.Thread):
             if not self.running:
                 break
             try:
+                sleep(0.5)
                 for address in bluetooth.discover_devices():
                     if bluetooth.lookup_name(address) == self.name:
                         self.addr = address
                         break
             except:
-                sleep(1)
                 pass
         if self.addr:
             self.status = 'connected'
@@ -61,8 +61,9 @@ class RFIDReader(threading.Thread):
         self.synchronize()
 
         while self.running:
-            try:        
+            try:
                 temp = ''
+                sleep(0.1)
                 while len(temp) < self.word and self.running:
                     try:
                         temp += self.socket.recv(1024)
@@ -74,7 +75,6 @@ class RFIDReader(threading.Thread):
                 match = self.pattern.match(temp)
                 if match and not self.data:
                     self.data = '%s%s' % (match.group(1), match.group(2))
-                    # make the main thread react to read tags by setting active_tag (through SamplerDb.tag_to_label()) and mode = 'sample'
             except IOError as e:
                 self.socket.close()
                 self.addr = None
