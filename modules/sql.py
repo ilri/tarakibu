@@ -228,7 +228,7 @@ class SamplerDb():
         next = self._query('SELECT MAX(CAST(SUBSTR(tag FROM 4) AS UNSIGNED)) + 1 AS max FROM animals;')[0][0]
         if not next:
             next = 1000
-        return 'AVD%s' % 
+        return 'AVD%s' % next
     
     def input_random_animal(self, form):
         try:

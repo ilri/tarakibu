@@ -1,5 +1,13 @@
 import re
 
+class SimplePage():
+    def __init__(self, settings, db):
+        self.title = settings['name']
+        self.version = settings['version']
+        self.port = settings['port']
+        self.info_time = settings['info_time']
+        self.db = db
+
 def ajax_function(port):
     return """
       function ajaxFunction(func,params)

@@ -1,12 +1,6 @@
 from common import *
 
-class admin():
-    def __init__(self, settings, db):
-        self.title = settings['name']
-        self.version = settings['version']
-        self.port = settings['port']
-        self.info_time = settings['info_time']
-        self.db = db
+class admin(SimplePage):
 
     def site(self):
         return """<html>
