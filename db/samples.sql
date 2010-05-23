@@ -314,6 +314,7 @@ CREATE TABLE `samples` (
   `hdop` float DEFAULT NULL,
   `satellites` int(11) DEFAULT NULL,
   `comment` text,
+  `raw_data` varchar(200) DEFAULT NULL,
   PRIMARY KEY (`prefix`,`barcode`),
   KEY `tag` (`tag_read`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -368,6 +369,7 @@ CREATE TABLE `tag_reads` (
   `altitude` double DEFAULT NULL,
   `satellites` int(11) DEFAULT NULL,
   `hdop` float DEFAULT NULL,
+  `raw_data` varchar(200) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `rfid` (`rfid`)
 ) ENGINE=MyISAM AUTO_INCREMENT=375 DEFAULT CHARSET=utf8;
@@ -580,4 +582,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-05-21  6:37:42
+-- Dump completed on 2010-05-21  7:53:12

@@ -68,23 +68,23 @@ class SamplerDb():
     def insert_tag_read(self, tag, pos):
         self._query('INSERT INTO tag_reads                     \
                             (rfid,     latitude,   longtitude, \
-                             altitude, satellites, hdop)       \
-                     VALUES ("%s", "%s", "%s", "%s", "%s", "%s");' % \
+                             altitude, satellites, hdop, raw_data)  \
+                     VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s");' % \
                             (tag.upper(), pos['latitude'], pos['longtitude'],\
                                   pos['altitude'], pos['satellites'],\
-                                  pos['dilution']))
+                                  pos['dilution'], pos['raw']))
 
     def insert_sample(self, barcode, tag, pos, info):
         tag_read = self.tag_to_id(tag)[0]
         prefix, barcode = self.split_barcode(barcode)
         self._query('INSERT INTO samples (prefix,     barcode,    tag_read, \
                                           latitude,   longtitude, altitude, \
-                                          satellites, hdop,       comment)  \
-                     VALUES ("%s","%s","%s","%s","%s","%s","%s","%s","%s");' % \
+                                          satellites, hdop,   comment, raw_data) \
+                     VALUES ("%s","%s","%s","%s","%s","%s","%s","%s","%s", "%s");' % \
                             (prefix, barcode, tag_read, 
                              pos['latitude'], pos['longtitude'], 
                              pos['altitude'], pos['satellites'],
-                             pos['dilution'], info))
+                             pos['dilution'], info, pos['raw']))
     
     def get_samples(self, rfid):
         tag_read = self.tag_to_id(rfid)

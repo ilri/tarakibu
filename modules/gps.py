@@ -21,7 +21,8 @@ class GPSReader(threading.Thread):
         self.conn     = None
         self.distalgo = 'haversine'
         self.data = {'latitude':'N/A',   'longtitude':'N/A', 'altitude':'N/A', 
-                     'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>'}
+                     'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>',
+                     'raw':''}
         self.gga = re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),\d,(\d+),([0-9.]+),([-0-9.]*),(M),[-0-9.]*,M,,0000\*...')
     
     def init(self):
@@ -69,6 +70,7 @@ class GPSReader(threading.Thread):
                     self.data['longtitude'] = self.convert(match.group(4))
                     self.data['satellites'] = match.group(6)
                     self.data['dilution'] = match.group(7)
+                    self.data['raw'] = raw_data[:-2]
                     if match.group(8):
                         self.data['altitude'] = match.group(8)
                     if match.group(3) == 'S':
