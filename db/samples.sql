@@ -90,7 +90,7 @@ CREATE TABLE `animal_measures` (
   `measure_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `comment` text,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=49 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=62 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -173,6 +173,7 @@ CREATE TABLE `deleted_samples` (
 
 LOCK TABLES `deleted_samples` WRITE;
 /*!40000 ALTER TABLE `deleted_samples` DISABLE KEYS */;
+INSERT INTO `deleted_samples` VALUES ('BDT','002237','2010-05-11 10:22:48'),('BSR','002304','2010-05-11 10:22:48');
 /*!40000 ALTER TABLE `deleted_samples` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -241,6 +242,23 @@ INSERT INTO `places` VALUES ('ILRI',-1.269188,36.722015,1);
 UNLOCK TABLES;
 
 --
+-- Temporary table structure for view `recently_sampled`
+--
+
+DROP TABLE IF EXISTS `recently_sampled`;
+/*!50001 DROP VIEW IF EXISTS `recently_sampled`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE TABLE `recently_sampled` (
+  `tag` varchar(11),
+  `sex` enum('female','male'),
+  `owner` varchar(32),
+  `location` varchar(32),
+  `sampled` varchar(10)
+) ENGINE=MyISAM */;
+SET character_set_client = @saved_cs_client;
+
+--
 -- Table structure for table `sample_types`
 --
 
@@ -260,9 +278,23 @@ CREATE TABLE `sample_types` (
 
 LOCK TABLES `sample_types` WRITE;
 /*!40000 ALTER TABLE `sample_types` DISABLE KEYS */;
-INSERT INTO `sample_types` VALUES ('MSC','Miscellaneous'),('SWB','Swab'),('BDT','EDTA Vacutainer'),('BSR','Dry Vacutainer'),('TCK','Tick'),('BHP','Heparin Vacutainer'),('BGA','<unknown>'),('BFI','<unknown>'),('L8R','Virus in Lysis Buffer'),('VTB','Virus in Transport Buffer'),('FTY','Test sample'),('AVA','avid aliquot'),('LR8','Test sample'),('IWIW17.5','iwiw sample');
+INSERT INTO `sample_types` VALUES ('MSC','Miscellaneous'),('SWB','Swab'),('BDT','EDTA Vacutainer'),('BSR','Dry Vacutainer'),('TCK','Tick'),('BHP','Heparin Vacutainer'),('BGA','<unknown>'),('BFI','<unknown>'),('L8R','Virus in Lysis Buffer'),('VTB','Virus in Transport Buffer'),('FTY','Test sample'),('AVA','avid aliquot'),('LR8','Test sample'),('IWIW17.5','iwiw sample'),('TEST','');
 /*!40000 ALTER TABLE `sample_types` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Temporary table structure for view `sampled_reads`
+--
+
+DROP TABLE IF EXISTS `sampled_reads`;
+/*!50001 DROP VIEW IF EXISTS `sampled_reads`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE TABLE `sampled_reads` (
+  `id` int(11),
+  `rfid` varchar(10)
+) ENGINE=MyISAM */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `samples`
@@ -338,7 +370,7 @@ CREATE TABLE `tag_reads` (
   `hdop` float DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `rfid` (`rfid`)
-) ENGINE=MyISAM AUTO_INCREMENT=358 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=375 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -500,6 +532,44 @@ UNLOCK TABLES;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `recently_sampled`
+--
+
+/*!50001 DROP TABLE `recently_sampled`*/;
+/*!50001 DROP VIEW IF EXISTS `recently_sampled`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = latin1 */;
+/*!50001 SET character_set_results     = latin1 */;
+/*!50001 SET collation_connection      = latin1_swedish_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `recently_sampled` AS select `a`.`tag` AS `tag`,`a`.`sex` AS `sex`,`a`.`owner` AS `owner`,`a`.`location` AS `location`,`b`.`rfid` AS `sampled` from (`active_animals` `a` left join `sampled_reads` `b` on((`a`.`tag` = `b`.`rfid`))) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `sampled_reads`
+--
+
+/*!50001 DROP TABLE `sampled_reads`*/;
+/*!50001 DROP VIEW IF EXISTS `sampled_reads`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = latin1 */;
+/*!50001 SET character_set_results     = latin1 */;
+/*!50001 SET collation_connection      = latin1_swedish_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `sampled_reads` AS select `tag_reads`.`id` AS `id`,`tag_reads`.`rfid` AS `rfid` from `tag_reads` where `tag_reads`.`id` in (select `active_samples`.`tag_read` AS `tag_read` from `active_samples` where ((to_days(now()) - to_days(`active_samples`.`sample_time`)) < 1)) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -510,4 +580,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-05-19 20:20:03
+-- Dump completed on 2010-05-21  6:37:42
