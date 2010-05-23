@@ -201,14 +201,15 @@ class SamplerDb():
     
     def get_animals_at_location(self, location):
         output = []
-        data = self._query('SELECT tag, sex, owner, location \
-                                   FROM active_animals       \
-                                   WHERE location = "%s";' % location)
+        data = self._query('SELECT tag, sex, owner, location, sampled \
+                                   FROM recently_sampled              \
+                                   WHERE location = "%s" ORDER BY owner;'\
+                               % location)
         if data:
             for animal in data:
                 output.append(animal)
         else:
-            output.append(('Could','not','load','animals'))
+            output.append(('Could','not','load','animals', False))
         return output
     
     def replace_animal(self, replace, new_tag, date_of_birth, 

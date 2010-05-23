@@ -41,7 +41,7 @@ class admin(SimplePage):
       <div class='right'>
         <div class='box top'>
           <table>
-            <tr><td>Position:</td><td><div id='position'></div></td></tr>
+            <tr><td>GPS:</td><td><div id='position'></div></td></tr>
             <tr><td>RFID:</td><td><div id='reader'></div></td></tr>
           </table>
         </div>
@@ -60,13 +60,7 @@ class admin(SimplePage):
 """ % (self.title, self.version, ajax_function(self.port), self.port, \
        site_style(), self.port, self.port, self.port, self.port, self.port, \
        self.port, self.title, self.version)
-    
-    def update(self, devices):
-        output = ''
-        output += ajax('position', position(devices['gps']))
-        output += ajax('reader',   reader(devices['rfid']))
-        return output
-    
+        
     def sample_types(self):
         info  = '<table>'
         info += '<tr><th>Prefix</td><th>Sample Type</td></tr>'
@@ -80,18 +74,23 @@ class admin(SimplePage):
         form += '</table>'
         return ajax('info', info) + ajax('input_form', form)
     
-    def places(self):
+    def places(self, gps):
         info  = '<table>'
         info += '<tr><th>Name</td><th>Latitude</td><th>Longtitude</td><th>Radius</td></tr>'
         for p in self.db.get_places():
             info += '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % p
         info += '</table>'
+        lat = ''
+        lon = ''
+        if gps.status == 'running':
+            lat = gps_format(gps.data['latitude'])
+            lon = gps_format(gps.data['longtitude'])
         form  = 'Add Place:'
         form += '<table>'
         form += '<tr><th>Name</td><td><input type=\'text\' name=\'name\'></td><td></td></tr>'
-        form += '<tr><th>Latitude</td><td><input type=\'text\' name=\'latitude\'></td><td></td></tr>'
-        form += '<tr><th>Longtitude</td><td><input type=\'text\' name=\'longtitude\'></td><td></td></tr>'
-        form += '<tr><th>Radius</td><td><input type=\'text\' name=\'radius\'></td><td>km</td></tr>'
+        form += '<tr><th>Latitude</td><td><input type=\'text\' name=\'latitude\' value=\'%s\'></td><td></td></tr>' % lat
+        form += '<tr><th>Longtitude</td><td><input type=\'text\' name=\'longtitude\' value=\'%s\'></td><td></td></tr>' % lon
+        form += '<tr><th>Radius</td><td><input type=\'text\' name=\'radius\' value=\'1\'></td><td>km</td></tr>'
         form += '</table>'
         return ajax('info', info) + ajax('input_form', form)
     

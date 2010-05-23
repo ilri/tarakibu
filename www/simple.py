@@ -10,9 +10,7 @@ errors = {'label':'Could not verify tag label. Verify that this animal is part o
 class simple(SimplePage):
 
     def update(self, devices, info):
-        output = ''
-        output += ajax('position', position(devices['gps']))
-        output += ajax('reader',   reader(devices['rfid']))
+        output = SimplePage.update(self, devices, info)
         if info['active_tag']:
             if self.info_time + info['tag_read'] > time():
                 output += ajax('info', self.db.sample_info(info['tag'])) 
@@ -110,7 +108,7 @@ class simple(SimplePage):
       <div class='right'>
         <div class='box top'>
           <table>
-            <tr><td>Position:</td><td><div id='position'></div></td></tr>
+            <tr><td>GPS:</td><td><div id='position'></div></td></tr>
             <tr><td>RFID:</td><td><div id='reader'></div></td></tr>
           </table>
         </div>

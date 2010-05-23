@@ -7,6 +7,20 @@ class SimplePage():
         self.port = settings['port']
         self.info_time = settings['info_time']
         self.db = db
+    
+    def update(self, devices, info):
+        output = ''
+        output  = ajax('position', position(devices['gps']))
+        output += ajax('reader',   reader(devices['rfid']))
+        return output
+
+    def header(self):
+        return """<html>
+  <head>
+    <title>%s v. %s - Admin</title>
+    <script type=\'text/javascript\'>
+    %s
+""" % (self.title, self.version, ajax_function(self.port))
 
 def ajax_function(port):
     return """
@@ -137,11 +151,22 @@ def sanitize(string):
 
 def position(gps):
     if gps.status == 'initializing':
-        return '<div style=\'color: #ff0;\'>Initializing</div>'
-    elif gps.status == 'running':
+        return '<div style=\'color: #f00;\'>Initializing</div>'
+    if gps.status == 'Out of Sync':
+        return '<div style=\'color: #ff0;\'>Out of Sync</div>'
+    if gps.status == 'running':
         return '<div style=\'color: #0f0;\'>%s, %s, %s</div>' % (\
-           gps.data['latitude'], gps.data['longtitude'],  gps.data['altitude'])
-    return '<div style=\'color: #f00;\'>Out of Sync</div>'
+           gps_format(gps.data['latitude']), 
+           gps_format(gps.data['longtitude']), 
+           gps.data['altitude'])
+    return '<div style=\'color: #f00;\'>Disconnected</div>'
+
+def gps_format(pos):
+    output = pos
+    if type(pos) == type(float()):
+        output = '%+.6f' % pos
+        output = output.zfill(10)
+    return output
 
 def reader(rfid):
     color = '#f00'

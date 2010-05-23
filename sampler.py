@@ -5,7 +5,6 @@ import sys
 import os
 import MySQLdb
 import cgi
-import traceback
 from time import sleep, time
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from modules.rfid import RFIDReader
@@ -64,13 +63,13 @@ class SamplerServer(BaseHTTPRequestHandler):
             elif self.path == '/input_livestock':
                 self.wfile.write(pages['default'].livestock_form(info,settings))
             elif self.path == '/devices':
-                self.wfile.write(pages['admin'].update(devices))
+                self.wfile.write(pages['admin'].update(devices, info))
             elif self.path == '/admin':
                 self.wfile.write(pages['admin'].site())
             elif self.path == '/types':
                 self.wfile.write(pages['admin'].sample_types())
             elif self.path == '/places':
-                self.wfile.write(pages['admin'].places())
+                self.wfile.write(pages['admin'].places(devices['gps']))
             elif self.path == '/tags':
                 self.wfile.write(pages['admin'].tags())
             elif self.path == '/animals':
@@ -113,7 +112,6 @@ try:
     server.serve_forever()
 except:
     server.socket.close()
-    traceback.print_exc(file=sys.stdout)
 
 print '\n* Shutting down.'
 

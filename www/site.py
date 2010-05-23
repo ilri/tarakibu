@@ -3,11 +3,8 @@ from common import *
 class site(SimplePage):
 
     def site(self):
-        return """<html>
-  <head>
-    <title>%s v. %s - Admin</title>
-    <script type=\'text/javascript\'>
-    %s
+        return """
+%s
       function updateSite()
       {
         ajaxFunction('http://localhost:%s/','devices')
@@ -39,7 +36,7 @@ class site(SimplePage):
       <div class='right'>
         <div class='box top'>
           <table>
-            <tr><td>Position:</td><td><div id='position'></div></td></tr>
+            <tr><td>GPS:</td><td><div id='position'></div></td></tr>
             <tr><td>RFID:</td><td><div id='reader'></div></td></tr>
           </table>
         </div>
@@ -55,8 +52,7 @@ class site(SimplePage):
     </div>
   </body>
 </html>
-""" % (self.title, self.version, ajax_function(self.port), self.port, \
-       self.port, site_style(), self.port, \
+""" % (self.header(), self.port, self.port, site_style(), self.port, \
        self.port, self.title, self.version)
 
     def parse_form(self, form, info, devices):
@@ -83,7 +79,10 @@ class site(SimplePage):
         info += '<table>'
         info += '<tr><th>Tag</td><th>Sex</td><th>Owner</td><th>Location</td></tr>'
         for animal in self.db.get_animals_at_location(location):
-            info += '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % animal
+            color = '#f00'
+            if animal[4]:
+                color = '#0f0'
+            info += '<tr style=\'color:%s\'><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (color, animal[0], animal[1], animal[2], animal[3])
         info += '</table>'
         output = ajax('where', 'You are at %s' % location)
         if location != 'an unknown position':

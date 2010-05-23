@@ -16,17 +16,17 @@ class GPSReader(threading.Thread):
         self.ports    = []
         self.OOS      = 30
         self.last     = time() - self.OOS
-        self.timeout  = 0.5
+        self.timeout  = 1.5
         self.running  = True
         self.conn     = None
-        self.status   = ''
         self.distalgo = 'haversine'
-        self.gga = re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),\d,(\d+),([0-9.]+),([-0-9.]+),(M),[-0-9.]+,M,,0000\*...')
-        self.unknown ={'latitude':'N/A', 'longtitude':'N/A', 'altitude':'N/A', \
-                       'satellites':'N/A', 'dilution':'N/A', 'time':'<unknown>'}
-        self.data = self.unknown
-
+        self.data = {'latitude':'N/A',   'longtitude':'N/A', 'altitude':'N/A', 
+                     'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>'}
+        self.gga = re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),\d,(\d+),([0-9.]+),([-0-9.]*),(M),[-0-9.]*,M,,0000\*...')
+    
     def init(self):
+        self.data = {'latitude':'N/A',   'longtitude':'N/A', 'altitude':'N/A', 
+                     'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>'}
         if self.ports == []:
             if re.match('[/a-zA-Z]+\d', self.port):
                 self.ports = self.port
@@ -36,16 +36,15 @@ class GPSReader(threading.Thread):
         
         while not self.conn and self.running:
             self.status = 'initializing'
-            if (self.last + self.OOS < time()):
-                self.data = self.unknown
             for port in self.ports: 
                 try:
                     sleep(0.1)
                     self.conn = serial.Serial(port, self.baud, \
                                               timeout = self.timeout)
                     self.port = port
+                    self.last = time() 
                     break
-                except Exception as e:
+                except:
                     pass
             
     def stop(self):
@@ -53,57 +52,52 @@ class GPSReader(threading.Thread):
 
     def run(self):
         self.init()
-        while True and self.running:
-            if (self.last + self.OOS < time()):
-                self.status = 'Out of Sync'
-                self.data = self.unknown
-            else:
-                self.status = 'running'
+        while self.running:
             try:
-                sleep(0.5)
-                if not self.conn.open():
-                    raw_data = self.conn.readline()
-                    match = self.gga.match(raw_data)
-                    if match:
-                        # convert from degree, min, sec to degree
-                        lat = '%s.%s' % (match.group(2)[0:2], \
-                                         (10*int(match.group(2)[2:4] + \
-                                                 match.group(2)[5:]))/6)
-                        lon = '%s.%s' % (match.group(4)[0:3], \
-                                         (10*int(match.group(4)[3:5] + \
-                                                 match.group(4)[6:]))/6)
-                        self.data = {'time':match.group(1),      \
-                                     'latitude':lat,  \
-                                     'longtitude':lon,\
-                                     'satellites':match.group(6),\
-                                     'dilution':match.group(7),  \
-                                     'altitude':match.group(8)}
-
-                        if match.group(3) == 'S':
-                            self.data['latitude'] = '-%s' % \
-                                self.data['latitude']
-                        if match.group(5) == 'W':
-                            self.data['longtitude'] ='-%s' % \
-                                self.data['longtitude']
-                            
-                        self.last = time()
-                else:
+                if (self.last + self.OOS < time()):
                     raise IOError
+                elif self.data['latitude'] == 'N/A':
+                    self.status = 'Out of Sync'
+                else:
+                    self.status = 'running'
+                sleep(0.5)
+                raw_data = self.conn.readline()
+                match = self.gga.match(raw_data)
+                if match:
+                    self.data['time'] = match.group(1)      
+                    self.data['latitude'] = self.convert(match.group(2))  
+                    self.data['longtitude'] = self.convert(match.group(4))
+                    self.data['satellites'] = match.group(6)
+                    self.data['dilution'] = match.group(7)
+                    if match.group(8):
+                        self.data['altitude'] = match.group(8)
+                    if match.group(3) == 'S':
+                        self.data['latitude'] = -self.data['latitude']
+                    if match.group(5) == 'W':
+                        self.data['longtitude'] = -self.data['longtitude']
+                    self.last = time()
             except:
                 self.conn = None
                 self.init()
         self.status = 'disconnected'
-    
+
+    def convert(self, coord):
+        degrees = int(float(coord)/100)
+        minutes = int((float(coord)/100 % 1)*100)
+        seconds = (float(coord)/100 % 1)*100
+        decdeg  = degrees + (float(minutes*60) + seconds)/3600
+        return decdeg
+            
     def distance(self, lat, lon):
         distance = ''
         if self.status == 'running':
             if self.distalgo == 'haversine':
-                distance = self.haversine(lat, float(self.data['latitude']),\
-                                          lon, float(self.data['longtitude']))
+                distance = self.haversine(lat, self.data['latitude'],
+                                          lon, self.data['longtitude'])
             if self.distalgo == 'spherical law of cosines':
                 distance = self.spherical_law_of_cosines(\
-                                lat, float(self.data['latitude']),\
-                                lon, float(self.data['longtitude']))
+                                lat, self.data['latitude'],
+                                lon, self.data['longtitude'])
         return distance
 
     def haversine(self, lat1, lat2, lon1, lon2):
