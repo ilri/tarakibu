@@ -83,10 +83,8 @@ class GPSReader(threading.Thread):
 
     def convert(self, coord):
         degrees = int(float(coord)/100)
-        minutes = int((float(coord)/100 % 1)*100)
-        seconds = (float(coord)/100 % 1)*100
-        decdeg  = degrees + (float(minutes*60) + seconds)/3600
-        return decdeg
+        minutes = (float(coord)/100 % 1)*100
+        return degrees + minutes/60
             
     def distance(self, lat, lon):
         distance = ''
