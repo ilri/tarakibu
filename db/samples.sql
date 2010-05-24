@@ -102,7 +102,6 @@ CREATE TABLE `animal_measures` (
 
 LOCK TABLES `animal_measures` WRITE;
 /*!40000 ALTER TABLE `animal_measures` DISABLE KEYS */;
-INSERT INTO `animal_measures` VALUES (62,'AVD1000','lt 1','2010-05-21 04:58:26','');
 /*!40000 ALTER TABLE `animal_measures` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -154,7 +153,6 @@ CREATE TABLE `animals` (
 
 LOCK TABLES `animals` WRITE;
 /*!40000 ALTER TABLE `animals` DISABLE KEYS */;
-INSERT INTO `animals` VALUES ('AVD1000',NULL,'female','sheep','','',1);
 /*!40000 ALTER TABLE `animals` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -214,7 +212,7 @@ SET character_set_client = utf8;
 /*!50001 CREATE TABLE `export_samples` (
   `id` int(11),
   `label` varchar(40),
-  `animal_tag` varchar(10),
+  `animal_id` int(11),
   `latitude` double,
   `longtitude` double,
   `altitude` double,
@@ -335,7 +333,6 @@ CREATE TABLE `samples` (
 
 LOCK TABLES `samples` WRITE;
 /*!40000 ALTER TABLE `samples` DISABLE KEYS */;
-INSERT INTO `samples` VALUES ('MSC','012031',375,'2010-05-21 04:58:31',-1.26760833333,36.720845,0,0,3,'','$GPGGA,211825.000,0116.0565,S,03643.2507,E,0,03,0.0,,M,,M,,0000*7C',1);
 /*!40000 ALTER TABLE `samples` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -391,7 +388,6 @@ CREATE TABLE `tag_reads` (
 
 LOCK TABLES `tag_reads` WRITE;
 /*!40000 ALTER TABLE `tag_reads` DISABLE KEYS */;
-INSERT INTO `tag_reads` VALUES (375,'AVD1000','2010-05-21 04:58:26',-1.26760833333,36.720845,0,3,0,'$GPGGA,211824.000,0116.0565,S,03643.2507,E,0,03,0.0,,M,,M,,0000*7D');
 /*!40000 ALTER TABLE `tag_reads` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -541,7 +537,7 @@ UNLOCK TABLES;
 /*!50001 SET collation_connection      = latin1_swedish_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `export_samples` AS select `a`.`id` AS `id`,concat(`a`.`prefix`,`a`.`barcode`) AS `label`,`b`.`rfid` AS `animal_tag`,`a`.`latitude` AS `latitude`,`a`.`longtitude` AS `longtitude`,`a`.`altitude` AS `altitude`,`a`.`sample_time` AS `timestamp`,`a`.`comment` AS `comments` from (`samples` `a` join `tag_reads` `b` on((`a`.`tag_read` = `b`.`id`))) where (not(concat(`a`.`prefix`,`a`.`barcode`) in (select concat(`deleted_samples`.`prefix`,`deleted_samples`.`barcode`) AS `CONCAT(prefix, barcode)` from `deleted_samples`))) */;
+/*!50001 VIEW `export_samples` AS select `a`.`id` AS `id`,concat(`a`.`prefix`,`a`.`barcode`) AS `label`,`c`.`id` AS `animal_id`,`a`.`latitude` AS `latitude`,`a`.`longtitude` AS `longtitude`,`a`.`altitude` AS `altitude`,`a`.`sample_time` AS `timestamp`,`a`.`comment` AS `comments` from ((`samples` `a` join `tag_reads` `b` on((`a`.`tag_read` = `b`.`id`))) join `active_animals` `c` on((`b`.`rfid` = `c`.`tag`))) where (not(concat(`a`.`prefix`,`a`.`barcode`) in (select concat(`deleted_samples`.`prefix`,`deleted_samples`.`barcode`) AS `CONCAT(prefix, barcode)` from `deleted_samples`))) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -593,4 +589,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-05-21 11:07:45
+-- Dump completed on 2010-05-21 11:15:37
