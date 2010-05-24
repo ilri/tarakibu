@@ -24,13 +24,14 @@ DROP TABLE IF EXISTS `active_animals`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 /*!50001 CREATE TABLE `active_animals` (
+  `id` int(11),
   `tag` varchar(11),
   `date_of_birth` datetime,
   `sex` enum('female','male'),
   `species` varchar(32),
   `owner` varchar(32),
   `location` varchar(32),
-  `id` int(10) unsigned,
+  `m_id` int(10) unsigned,
   `animal` varchar(10),
   `approximate_age` varchar(32),
   `measure_time` timestamp,
@@ -47,6 +48,7 @@ DROP TABLE IF EXISTS `active_samples`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 /*!50001 CREATE TABLE `active_samples` (
+  `id` int(11),
   `barcode` varchar(40),
   `tag_read` int(11),
   `sample_time` timestamp,
@@ -55,7 +57,8 @@ SET character_set_client = utf8;
   `altitude` double,
   `hdop` float,
   `satellites` int(11),
-  `comment` text
+  `comment` text,
+  `raw_data` varchar(200)
 ) ENGINE=MyISAM */;
 SET character_set_client = @saved_cs_client;
 
@@ -90,7 +93,7 @@ CREATE TABLE `animal_measures` (
   `measure_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `comment` text,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=62 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=63 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -99,6 +102,7 @@ CREATE TABLE `animal_measures` (
 
 LOCK TABLES `animal_measures` WRITE;
 /*!40000 ALTER TABLE `animal_measures` DISABLE KEYS */;
+INSERT INTO `animal_measures` VALUES (62,'AVD1000','lt 1','2010-05-21 04:58:26','');
 /*!40000 ALTER TABLE `animal_measures` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -139,8 +143,9 @@ CREATE TABLE `animals` (
   `species` varchar(32) DEFAULT NULL,
   `owner` varchar(32) DEFAULT NULL,
   `location` varchar(32) DEFAULT NULL,
-  PRIMARY KEY (`tag`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -149,6 +154,7 @@ CREATE TABLE `animals` (
 
 LOCK TABLES `animals` WRITE;
 /*!40000 ALTER TABLE `animals` DISABLE KEYS */;
+INSERT INTO `animals` VALUES ('AVD1000',NULL,'female','sheep','','',1);
 /*!40000 ALTER TABLE `animals` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -186,6 +192,7 @@ DROP TABLE IF EXISTS `export_animals`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 /*!50001 CREATE TABLE `export_animals` (
+  `id` int(11),
   `animal_id` varchar(11),
   `organism` varchar(32),
   `age` varchar(32),
@@ -205,6 +212,7 @@ DROP TABLE IF EXISTS `export_samples`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 /*!50001 CREATE TABLE `export_samples` (
+  `id` int(11),
   `label` varchar(40),
   `animal_tag` varchar(10),
   `latitude` double,
@@ -315,9 +323,10 @@ CREATE TABLE `samples` (
   `satellites` int(11) DEFAULT NULL,
   `comment` text,
   `raw_data` varchar(200) DEFAULT NULL,
-  PRIMARY KEY (`prefix`,`barcode`),
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`),
   KEY `tag` (`tag_read`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -326,6 +335,7 @@ CREATE TABLE `samples` (
 
 LOCK TABLES `samples` WRITE;
 /*!40000 ALTER TABLE `samples` DISABLE KEYS */;
+INSERT INTO `samples` VALUES ('MSC','012031',375,'2010-05-21 04:58:31',-1.26760833333,36.720845,0,0,3,'','$GPGGA,211825.000,0116.0565,S,03643.2507,E,0,03,0.0,,M,,M,,0000*7C',1);
 /*!40000 ALTER TABLE `samples` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -372,7 +382,7 @@ CREATE TABLE `tag_reads` (
   `raw_data` varchar(200) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `rfid` (`rfid`)
-) ENGINE=MyISAM AUTO_INCREMENT=375 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=376 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -381,6 +391,7 @@ CREATE TABLE `tag_reads` (
 
 LOCK TABLES `tag_reads` WRITE;
 /*!40000 ALTER TABLE `tag_reads` DISABLE KEYS */;
+INSERT INTO `tag_reads` VALUES (375,'AVD1000','2010-05-21 04:58:26',-1.26760833333,36.720845,0,3,0,'$GPGGA,211824.000,0116.0565,S,03643.2507,E,0,03,0.0,,M,,M,,0000*7D');
 /*!40000 ALTER TABLE `tag_reads` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -454,7 +465,7 @@ UNLOCK TABLES;
 /*!50001 SET collation_connection      = latin1_swedish_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `active_animals` AS select `a`.`tag` AS `tag`,`a`.`date_of_birth` AS `date_of_birth`,`a`.`sex` AS `sex`,`a`.`species` AS `species`,`a`.`owner` AS `owner`,`a`.`location` AS `location`,`m`.`id` AS `id`,`m`.`animal` AS `animal`,`m`.`approximate_age` AS `approximate_age`,`m`.`measure_time` AS `measure_time`,`m`.`comment` AS `comment` from (`animals` `a` join `animal_measures` `m` on((`a`.`tag` = `m`.`animal`))) where (not(`a`.`tag` in (select `tag_replacements`.`replaces` AS `replaces` from `tag_replacements`))) */;
+/*!50001 VIEW `active_animals` AS select `a`.`id` AS `id`,`a`.`tag` AS `tag`,`a`.`date_of_birth` AS `date_of_birth`,`a`.`sex` AS `sex`,`a`.`species` AS `species`,`a`.`owner` AS `owner`,`a`.`location` AS `location`,`m`.`id` AS `m_id`,`m`.`animal` AS `animal`,`m`.`approximate_age` AS `approximate_age`,`m`.`measure_time` AS `measure_time`,`m`.`comment` AS `comment` from (`animals` `a` join `animal_measures` `m` on((`a`.`tag` = `m`.`animal`))) where (not(`a`.`tag` in (select `tag_replacements`.`replaces` AS `replaces` from `tag_replacements`))) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -473,7 +484,7 @@ UNLOCK TABLES;
 /*!50001 SET collation_connection      = latin1_swedish_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `active_samples` AS select concat(`samples`.`prefix`,`samples`.`barcode`) AS `barcode`,`samples`.`tag_read` AS `tag_read`,`samples`.`sample_time` AS `sample_time`,`samples`.`latitude` AS `latitude`,`samples`.`longtitude` AS `longtitude`,`samples`.`altitude` AS `altitude`,`samples`.`hdop` AS `hdop`,`samples`.`satellites` AS `satellites`,`samples`.`comment` AS `comment` from `samples` where (not(concat(`samples`.`prefix`,`samples`.`barcode`) in (select concat(`deleted_samples`.`prefix`,`deleted_samples`.`barcode`) AS `CONCAT(prefix, barcode)` from `deleted_samples`))) */;
+/*!50001 VIEW `active_samples` AS select `a`.`id` AS `id`,concat(`a`.`prefix`,`a`.`barcode`) AS `barcode`,`a`.`tag_read` AS `tag_read`,`a`.`sample_time` AS `sample_time`,`a`.`latitude` AS `latitude`,`a`.`longtitude` AS `longtitude`,`a`.`altitude` AS `altitude`,`a`.`hdop` AS `hdop`,`a`.`satellites` AS `satellites`,`a`.`comment` AS `comment`,`a`.`raw_data` AS `raw_data` from `samples` `a` where (not(concat(`a`.`prefix`,`a`.`barcode`) in (select concat(`deleted_samples`.`prefix`,`deleted_samples`.`barcode`) AS `concat(prefix, barcode)` from `deleted_samples`))) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -511,7 +522,7 @@ UNLOCK TABLES;
 /*!50001 SET collation_connection      = latin1_swedish_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `export_animals` AS select `a`.`tag` AS `animal_id`,`a`.`species` AS `organism`,`b`.`approximate_age` AS `age`,`a`.`sex` AS `sex`,`c`.`replaces` AS `prev_tag`,`a`.`location` AS `location`,`b`.`comment` AS `comments` from ((`animals` `a` join `animal_measures` `b` on((`a`.`tag` = `b`.`animal`))) left join `tag_replacements` `c` on((`c`.`label` = `a`.`tag`))) where (not(`a`.`tag` in (select `tag_replacements`.`replaces` AS `replaces` from `tag_replacements`))) */;
+/*!50001 VIEW `export_animals` AS select `a`.`id` AS `id`,`a`.`tag` AS `animal_id`,`a`.`species` AS `organism`,`b`.`approximate_age` AS `age`,`a`.`sex` AS `sex`,`c`.`replaces` AS `prev_tag`,`a`.`location` AS `location`,`b`.`comment` AS `comments` from ((`animals` `a` join `animal_measures` `b` on((`a`.`tag` = `b`.`animal`))) left join `tag_replacements` `c` on((`c`.`label` = `a`.`tag`))) where (not(`a`.`tag` in (select `tag_replacements`.`replaces` AS `replaces` from `tag_replacements`))) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -530,7 +541,7 @@ UNLOCK TABLES;
 /*!50001 SET collation_connection      = latin1_swedish_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `export_samples` AS select concat(`a`.`prefix`,`a`.`barcode`) AS `label`,`b`.`rfid` AS `animal_tag`,`a`.`latitude` AS `latitude`,`a`.`longtitude` AS `longtitude`,`a`.`altitude` AS `altitude`,`a`.`sample_time` AS `timestamp`,`a`.`comment` AS `comments` from (`samples` `a` join `tag_reads` `b` on((`a`.`tag_read` = `b`.`id`))) where (not(concat(`a`.`prefix`,`a`.`barcode`) in (select concat(`deleted_samples`.`prefix`,`deleted_samples`.`barcode`) AS `CONCAT(prefix, barcode)` from `deleted_samples`))) */;
+/*!50001 VIEW `export_samples` AS select `a`.`id` AS `id`,concat(`a`.`prefix`,`a`.`barcode`) AS `label`,`b`.`rfid` AS `animal_tag`,`a`.`latitude` AS `latitude`,`a`.`longtitude` AS `longtitude`,`a`.`altitude` AS `altitude`,`a`.`sample_time` AS `timestamp`,`a`.`comment` AS `comments` from (`samples` `a` join `tag_reads` `b` on((`a`.`tag_read` = `b`.`id`))) where (not(concat(`a`.`prefix`,`a`.`barcode`) in (select concat(`deleted_samples`.`prefix`,`deleted_samples`.`barcode`) AS `CONCAT(prefix, barcode)` from `deleted_samples`))) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -582,4 +593,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-05-21  7:53:12
+-- Dump completed on 2010-05-21 11:07:45
