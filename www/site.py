@@ -70,11 +70,7 @@ class site(SimplePage):
             self.db.update_samples(label, samples[label])
     
     def location(self, gps):
-        location = 'an unknown position'
-        for place in self.db.get_places():
-            if gps.distance(place[1], place[2]) < place[3]:
-                location = place[0]
-                break
+        location = self.db.get_location(gps)
         info  = '<h3>Known animals at this Location</h3>'
         info += '<table>'
         info += '<tr><th>Tag</td><th>Sex</td><th>Owner</td><th>Location</td></tr>'
@@ -84,9 +80,11 @@ class site(SimplePage):
                 color = '#0f0'
             info += '<tr style=\'color:%s\'><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (color, animal[0], animal[1], animal[2], animal[3])
         info += '</table>'
-        output = ajax('where', 'You are at %s' % location)
-        if location != 'an unknown position':
+        if location:
+            output = ajax('where', 'You are at %s' % location)
             output += ajax('info', info)
+        else:
+            output = ajax('where', 'You are at an unknown position')
         return output
     
     def previous_samples(self):

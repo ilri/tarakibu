@@ -1,12 +1,13 @@
 import re
 
 class SimplePage():
-    def __init__(self, settings, db):
+    def __init__(self, settings, db, devices):
         self.title = settings['name']
         self.version = settings['version']
         self.port = settings['port']
         self.info_time = settings['info_time']
         self.db = db
+        self.gps = devices['gps']
     
     def update(self, devices, info):
         output = ''

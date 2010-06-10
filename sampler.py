@@ -36,12 +36,12 @@ db       = SamplerDb(host   = settings['db_host'],
                      user   = settings['db_user'],
                      passwd = settings['db_pass'])
 
-pages    = {'default':simple(settings, db),
-            'admin'  :admin (settings, db),
-            'site'   :site  (settings, db)}
-
 devices  = {'rfid':RFIDReader('Stick Reader V3', None),
             'gps' :GPSReader ('/dev/ttyUSB', 38400)}
+
+pages    = {'default':simple(settings, db, devices),
+            'admin'  :admin (settings, db, devices),
+            'site'   :site  (settings, db, devices)}
 
 class SamplerServer(BaseHTTPRequestHandler):
     

@@ -139,10 +139,10 @@ class simple(SimplePage):
 <tr><td>Approximate Age:</td><td><input type='text' name='age'></td></tr>
 <tr><td>Sex</td><td><select name=\'sex\'><option name=\'female\'>female</option><option name=\'male\'>male</option></select></td></tr>
 <tr><td>Owner:</td><td><input type='text' name='owner'></td></tr>
-<tr><td>Location:</td><td><input type='text' name='location'></td></tr>
+<tr><td>Location:</td><td><input type='text' name='location' value='%s'></td></tr>
 <tr><td>Comment:</td><td><input type='text' name='comment'></td></tr>
 </table>
-""" % (self.get_species(), self.db.get_next_animal_id())
+""" % (self.get_species(), self.db.get_next_animal_id(), self.db.get_location(self.gps))
 
     def get_species(self):
         output = ''

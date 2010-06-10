@@ -241,3 +241,11 @@ class SamplerDb():
 
     def get_species(self):
         return self._query('SELECT common_name FROM species ORDER BY common_name DESC;');
+
+    def get_location(self, gps):
+        location = ''
+        for place in self.get_places():
+            if gps.distance(place[1], place[2]) < place[3]:
+                location = place[0]
+                break
+        return location
