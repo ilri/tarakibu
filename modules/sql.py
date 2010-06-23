@@ -62,8 +62,7 @@ class SamplerDb():
         return False
 
     def verify_tag(self, tag):
-        return self._query('SELECT label FROM active_tags \
-                                  WHERE label="%s";' % tag)
+        return self._query('SELECT DISTINCT(label) FROM (SELECT label FROM tags UNION SELECT tag FROM animals) AS label WHERE label NOT IN (SELECT label FROM tag_replacements) AND label = "%s";' % tag)
 
     def insert_tag_read(self, tag, pos):
         self._query('INSERT INTO tag_reads                     \
@@ -196,7 +195,7 @@ class SamplerDb():
                             WHERE prefix = "%s" AND barcode = "%s";' % \
                            (info[0][1], prefix, barcode))
         if info[1][1]:
-            self.db._query('INSERT INTO deleted_samples(prefix, barcode) \
+            self._query('INSERT INTO deleted_samples(prefix, barcode) \
                                    VALUES ("%s", "%s");' % (prefix, barcode))
     
     def get_animals_at_location(self, location):

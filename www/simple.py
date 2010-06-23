@@ -9,46 +9,46 @@ errors = {'label':'Could not verify tag label. Verify that this animal is part o
 
 class simple(SimplePage):
 
-    def update(self, devices, info):
-        output = SimplePage.update(self, devices, info)
+    def update(self, info):
+        output = SimplePage.update(self, info)
         if info['active_tag']:
             if self.info_time + info['tag_read'] > time():
                 output += ajax('info', self.db.sample_info(info['tag'])) 
             else:
-                output += ajax('info', self.db.sample_info(info['active_tag']))
+                output += ajax('info',self.db.sample_info(info['active_tag']))
         else:
             output += ajax('info', info['msg'])
         output += ajax('error', info['error'])
-        if devices['rfid'].data and info['mode'] == 'animal':
+        if self.devices['rfid'].data and info['mode'] == 'animal':
             try:
                 info['active_tag'] = self.db.tag_to_label(\
-                                                    devices['rfid'].data)[0]
+                                                 self.devices['rfid'].data)[0]
                 if info['active_tag']:
                     self.db.insert_tag_read(info['active_tag'],
-                                            devices['gps'].data)
+                                            self.devices['gps'].data)
                     info['mode'] = 'sample'
-                    devices['rfid'].data = None
+                    self.devices['rfid'].data = None
                     output += ajax('input_form',
                               self.sample_input(info['active_tag'], self.port))
                     output += self.focus('sample')
             except:
                 info['error'] = errors['label']
-        if devices['rfid'].data and info['mode'] == 'sample':
+        if self.devices['rfid'].data and info['mode'] == 'sample':
             try:
-                info['tag'] = self.db.tag_to_label(devices['rfid'].data)[0]
+                info['tag']=self.db.tag_to_label(self.devices['rfid'].data)[0]
                 info['tag_read'] = time()
-                devices['rfid'].data = None
+                self.devices['rfid'].data = None
             except:
                 pass
         return output
 
-    def new_animal(self, info, settings):
+    def new_animal(self, info):
         info['mode']       = 'animal'
         info['active_tag'] = None
         info['error']      = ''
-        return self.input_form(info, settings)
+        return self.input_form(info)
 
-    def input_form(self, info, settings):
+    def input_form(self, info):
         output = ''
         if info['mode'] == 'animal':
             if info['target'] == 'livestock':
@@ -59,19 +59,19 @@ class simple(SimplePage):
                 output += self.focus('species')
         else:
             output += ajax('input_form', self.sample_input(info['active_tag'],
-                                                           settings['port']))
+                                                           self.port))
             output += self.focus('sample')
         return output
 
-    def livestock_form(self, info, settings):
+    def livestock_form(self, info):
         info['target'] = 'livestock'
-        return self.input_form(info, settings)
+        return self.input_form(info)
 
-    def random_form(self, info, settings):
+    def random_form(self, info):
         info['target'] = 'random'
-        return self.input_form(info, settings)
+        return self.input_form(info)
 
-    def site(self):
+    def site(self, info):
         return """<html>
   <head>
     <title>%s v. %s</title>
@@ -79,24 +79,24 @@ class simple(SimplePage):
     %s
       function updateSite()
       {
-        ajaxFunction('http://localhost:%s/','update')
+        ajaxFunction('http://localhost:%s/','simple/update')
         setTimeout('updateSite()', 500)
       }
     </script>
     %s
   </head>
-  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','input_form')">
+  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','simple/input_form')">
     <div class='site'>
       <div class='left'>
         <div class='box top'>
           <h1>%s</h1>
         </div>
         <div class='box main'>
-          <h2><a href=javascript:ajaxFunction('http://localhost:%s','/input_livestock')>Livestock</a>|
-              <a href=javascript:ajaxFunction('http://localhost:%s','/input_random')>Random</a></h2>
+          <h2><a href=javascript:ajaxFunction('http://localhost:%s','/simple/livestock_form')>Livestock</a>|
+              <a href=javascript:ajaxFunction('http://localhost:%s','/simple/random_form')>Random</a></h2>
           <hr />
           <form action='http://localhost:%s/' method='post' enctype='multipart/form-data' name='sampling'>
-            <input type='hidden' name='page' value='default'>
+            <input type='hidden' name='page' value='simple'>
             <div class='scroller input' id='input_form'></div>
             <hr />
             <div class='submitbutton'>
@@ -162,7 +162,7 @@ Current Animal: %s
 <tr> <td>Information:</td> <td><input type='text' name='comment' id='comment'></td> </tr>
 </table>
 <hr />
-<a href=javascript:ajaxFunction('http://localhost:%s/','new_animal')>Next Animal</a> >>
+<a href=javascript:ajaxFunction('http://localhost:%s/','simple/new_animal')>Next Animal</a> >>
 """ % (title.upper(), port) 
 
     def parse_form(self, form, info, devices):
@@ -193,7 +193,7 @@ Current Animal: %s
     def input_sample(self, form, info, devices):
         if devices['gps'].status == 'running':
             if self.db.verify_sample(form['sample'][0]):
-                self.db.insert_sample(form['sample'][0],   info['active_tag'], \
+                self.db.insert_sample(form['sample'][0], info['active_tag'], \
                                       devices['gps'].data, form['comment'][0])
                 previous = '%s' % self.db.get_samples(info['active_tag'])
                 info['error'] = ''

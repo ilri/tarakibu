@@ -2,7 +2,7 @@ from common import *
 
 class admin(SimplePage):
 
-    def site(self):
+    def site(self, info):
         return """<html>
   <head>
     <title>%s v. %s - Admin</title>
@@ -10,23 +10,23 @@ class admin(SimplePage):
     %s
       function updateSite()
       {
-        ajaxFunction('http://localhost:%s/','devices')
+        ajaxFunction('http://localhost:%s/','admin/update')
         setTimeout('updateSite()', 500)
       }
     </script>  
     %s
   </head>
-  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','types')">
+  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','admin/sample_types')">
     <div class='site'>
       <div class='left'>
         <div class='box top'>
           <h1>Administration</h1>
         </div>
         <div class='box main'>
-          <h3><a href=javascript:ajaxFunction('http://localhost:%s','/types')>Sample Types</a> | 
-              <a href=javascript:ajaxFunction('http://localhost:%s','/places')>Places</a> | 
-              <a href=javascript:ajaxFunction('http://localhost:%s','/tags')>Tags</a> | 
-              <a href=javascript:ajaxFunction('http://localhost:%s','/animals')>Animals</a></h3>
+          <h3><a href=javascript:ajaxFunction('http://localhost:%s','/admin/sample_types')>Sample Types</a> | 
+              <a href=javascript:ajaxFunction('http://localhost:%s','/admin/places')>Places</a> | 
+              <a href=javascript:ajaxFunction('http://localhost:%s','/admin/tags')>Tags</a> | 
+              <a href=javascript:ajaxFunction('http://localhost:%s','/admin/animals')>Animals</a></h3>
           <hr />
           <form action='http://localhost:%s/' method='post' enctype='multipart/form-data' name='sampling'>
             <input type='hidden' name='page' value='admin'>
@@ -61,7 +61,7 @@ class admin(SimplePage):
        site_style(), self.port, self.port, self.port, self.port, self.port, \
        self.port, self.title, self.version)
         
-    def sample_types(self):
+    def sample_types(self, info):
         info  = '<table>'
         info += '<tr><th>Prefix</td><th>Sample Type</td></tr>'
         for t in self.db.get_sample_types():
@@ -74,7 +74,7 @@ class admin(SimplePage):
         form += '</table>'
         return ajax('info', info) + ajax('input_form', form)
     
-    def places(self, gps):
+    def places(self, info):
         info  = '<table>'
         info += '<tr><th>Name</td><th>Latitude</td><th>Longtitude</td><th>Radius</td></tr>'
         for p in self.db.get_places():
@@ -82,9 +82,9 @@ class admin(SimplePage):
         info += '</table>'
         lat = ''
         lon = ''
-        if gps.status == 'running':
-            lat = gps_format(gps.data['latitude'])
-            lon = gps_format(gps.data['longtitude'])
+        if self.devices['gps'].status == 'running':
+            lat = gps_format(self.devices['gps'].data['latitude'])
+            lon = gps_format(self.devices['gps'].data['longtitude'])
         form  = 'Add Place:'
         form += '<table>'
         form += '<tr><th>Name</td><td><input type=\'text\' name=\'name\'></td><td></td></tr>'
@@ -94,7 +94,7 @@ class admin(SimplePage):
         form += '</table>'
         return ajax('info', info) + ajax('input_form', form)
     
-    def tags(self):
+    def tags(self, info):
         info  = '<table>'
         info += '<tr><th>Label</td><th>RFID</td><th>Color</td><th>Supplier</td><th>Type</td></tr>' 
         for tag in self.db.get_tags():
@@ -114,7 +114,7 @@ class admin(SimplePage):
         form += '</table>'
         return ajax('info', info) + ajax('input_form', form)
     
-    def animals(self):
+    def animals(self, info):
         info  = '<table>'
         info += '<tr><th>Tag</td><th>Sex</td><th>Owner</td><th>Location</td></tr>'
         form  = 'Replace animal:<select name=\'replace\'>'

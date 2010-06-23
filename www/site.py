@@ -2,19 +2,19 @@ from common import *
 
 class site(SimplePage):
 
-    def site(self):
+    def site(self, info):
         return """
 %s
       function updateSite()
       {
-        ajaxFunction('http://localhost:%s/','devices')
-        ajaxFunction('http://localhost:%s/','location')
+        ajaxFunction('http://localhost:%s/','site/update')
+        ajaxFunction('http://localhost:%s/','site/location')
         setTimeout('updateSite()', 500)
       }
     </script>  
     %s
   </head>
-  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','previous');">
+  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','site/previous_samples');">
     <div class='site'>
       <div class='left'>
         <div class='box top'>
@@ -69,8 +69,8 @@ class site(SimplePage):
         for label in samples:
             self.db.update_samples(label, samples[label])
     
-    def location(self, gps):
-        location = self.db.get_location(gps)
+    def location(self, info):
+        location = self.db.get_location(self.devices['gps'])
         info  = '<h3>Known animals at this Location</h3>'
         info += '<table>'
         info += '<tr><th>Tag</td><th>Sex</td><th>Owner</td><th>Location</td></tr>'
@@ -87,7 +87,7 @@ class site(SimplePage):
             output = ajax('where', 'You are at an unknown position')
         return output
     
-    def previous_samples(self):
+    def previous_samples(self, info):
         output  = '<table>'
         output += '<tr><th>Sample</td><th>Comment</td><th>Delete</td></tr>'
         for sample in self.db.get_latest_samples():

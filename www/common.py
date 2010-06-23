@@ -1,18 +1,20 @@
 import re
 
 class SimplePage():
-    def __init__(self, settings, db, devices):
+    def __init__(self, settings, db, devices, info):
         self.title = settings['name']
         self.version = settings['version']
         self.port = settings['port']
         self.info_time = settings['info_time']
         self.db = db
+        self.devices = devices
+        self.info = info
         self.gps = devices['gps']
     
-    def update(self, devices, info):
+    def update(self, info):
         output = ''
-        output  = ajax('position', position(devices['gps']))
-        output += ajax('reader',   reader(devices['rfid']))
+        output  = ajax('position', position(self.devices['gps']))
+        output += ajax('reader',   reader(self.devices['rfid']))
         return output
 
     def header(self):
