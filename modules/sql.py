@@ -42,7 +42,7 @@ class SamplerDb():
 
     def tag_to_label(self, tag):
         return self._query('SELECT label FROM active_tags \
-                                   WHERE rfid = "%s";' % tag)
+                                   WHERE rfid = "%s";' % tag)[0]
 
     def tag_to_id(self, tag):
         return self._query('SELECT id FROM tag_reads \
