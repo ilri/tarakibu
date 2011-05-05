@@ -117,8 +117,6 @@ class SamplerDb():
         if data:
             for sample_type in data:
                 output.append(sample_type)
-        else:
-            output.append(('Could not load','sample types'))
         return output 
     
     def get_tags(self):
@@ -128,8 +126,6 @@ class SamplerDb():
         if data:
             for tag in data:
                 output.append(tag)
-        else:
-            output.append(('Could','not','load','tags',''))
         return output
     
     def insert_prefix(self, prefix, description):
@@ -144,14 +140,15 @@ class SamplerDb():
         if data:
             for place in data:
                 output.append(place)
-        else:
-            output.append(('Could','not','load','places'))
         return output
     
-    def insert_place(self, name, latitude, longtitude, radius):
-        self._query('INSERT INTO places(name, latitude, longtitude, radius) \
-                            VALUES ("%s",%s,%s,%s);' % \
-                           (name, latitude, longtitude, radius))
+    def insert_place(self, name, latitude, longitude, radius):
+        if latitude == 'N/A':
+            latitude = 'NULL'
+        if longitude == 'N/A':
+            longitude = 'NULL'
+        query = 'INSERT INTO places(name, latitude, longtitude, radius) VALUES ("%s",%s,%s,%s);' % (name, latitude, longitude, radius)
+        self._query(query)
 
     def replace_tag(self, tag, rfid, color, supplier, tag_type, replace):
         self._query('INSERT INTO tag_replacements                          \
@@ -166,8 +163,6 @@ class SamplerDb():
         if data:
             for animal in data:
                 output.append(animal)
-        else:
-            output.append(('Could','not','load','animals'))
         return output
     
     def get_latest_samples(self):
@@ -178,8 +173,6 @@ class SamplerDb():
         if data:
             for sample in data:
                 output.append(sample)
-        else:
-            output.append(('Could not','load','latest','samples'))
         return output
     
     def update_samples(self, tag, info):
@@ -207,8 +200,6 @@ class SamplerDb():
         if data:
             for animal in data:
                 output.append(animal)
-        else:
-            output.append(('Could','not','load','animals', False))
         return output
     
     def replace_animal(self, replace, new_tag, date_of_birth, 
@@ -224,11 +215,12 @@ class SamplerDb():
                             VALUES ("%s", "%s");' %                       \
                            (new_tag, replace))
     
-    def get_next_animal_id(self):
-        next = self._query('SELECT MAX(CAST(SUBSTR(tag FROM 4) AS UNSIGNED)) + 1 AS max FROM animals;')[0][0]
+    def get_next_animal_id(self, location, species):
+        length = len(location) + len(species) + 3
+        next = self._query('SELECT MAX(CAST(SUBSTR(tag FROM %i) AS UNSIGNED)) + 1 AS num FROM animals WHERE species = "%s" AND location = "%s";' % (length, species, location))[0][0]
         if not next:
-            next = 1000
-        return 'AVD%s' % next
+            next = 1
+        return '%s/%s/%03i' % (location, species, next)
     
     def input_random_animal(self, form):
         try:
@@ -244,7 +236,11 @@ class SamplerDb():
     def get_location(self, gps):
         location = ''
         for place in self.get_places():
-            if gps.distance(place[1], place[2]) < place[3]:
+            if place and gps.distance(place[1], place[2]) < place[3]:
                 location = place[0]
                 break
         return location
+    
+    def get_village_info(self, village):
+        query = 'SELECT village, province, district FROM place_infos WHERE village = "%s";' % village
+        return self._query(query)

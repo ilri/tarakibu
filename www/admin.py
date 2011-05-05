@@ -24,9 +24,6 @@ class admin(SimplePage):
         </div>
         <div class='box main'>
           <h3><a href=javascript:ajaxFunction('http://localhost:%s','/admin/sample_types')>Sample Types</a> | 
-              <a href=javascript:ajaxFunction('http://localhost:%s','/admin/places')>Places</a> | 
-              <a href=javascript:ajaxFunction('http://localhost:%s','/admin/tags')>Tags</a> | 
-              <a href=javascript:ajaxFunction('http://localhost:%s','/admin/animals')>Animals</a></h3>
           <hr />
           <form action='http://localhost:%s/' method='post' enctype='multipart/form-data' name='sampling'>
             <input type='hidden' name='page' value='admin'>
@@ -58,7 +55,7 @@ class admin(SimplePage):
   </body>
 </html>
 """ % (self.title, self.version, ajax_function(self.port), self.port, \
-       site_style(), self.port, self.port, self.port, self.port, self.port, \
+       site_style(), self.port, self.port, \
        self.port, self.title, self.version)
         
     def sample_types(self, info):
@@ -96,9 +93,9 @@ class admin(SimplePage):
     
     def tags(self, info):
         info  = '<table>'
-        info += '<tr><th>Label</td><th>RFID</td><th>Color</td><th>Supplier</td><th>Type</td></tr>' 
+        info += '<tr><th><small>Label</small></td><th><small>RFID</small></td><th><small>Color</small></td><th><small>Supplier</small></td><th></small>Type</td></tr>' 
         for tag in self.db.get_tags():
-            info += '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % tag
+            info += '<tr><td><small>%s</small></td><td><small>%s</small></td><td><small>%s</small></td><td><small>%s</small></td><td><small>%s</small></td></tr>' % tag
         info += '</table>'
         form  = 'Replace tag:<select name=\'replace\'>'
         for tag in self.db.get_tags():

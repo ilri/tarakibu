@@ -16,7 +16,7 @@ from www.admin import *
 from www.site import *
 
 settings = {'name'      :'Simple Sampler'                   ,
-            'version'   :'0.8.1 BETA'                       ,
+            'version'   :'0.8.2 BETA'                       ,
             'port'      :8080                               ,
             'db_host'   :'localhost'                        ,
             'db_name'   :'samples'                          ,
@@ -29,7 +29,8 @@ info     = {'mode'      :'animal'                           ,
             'msg'       :'Welcome to %s!' % settings['name'],
             'error'     :''                                 ,
             'tag'       :None                               ,
-            'tag_read'  :0}
+            'tag_read'  :0,
+            'farmer'    :''}
 
 db       = SamplerDb(host   = settings['db_host'],
                      db     = settings['db_name'],
@@ -58,8 +59,11 @@ class SamplerServer(BaseHTTPRequestHandler):
                 path = self.path.split('/')
                 if len(path) <= 2:
                     path.append('site')
-                eval("self.wfile.write(pages[\'%s\'].%s(info))" % \
-                                             (path[1], path[2]))
+                if len(path) > 3:
+                    eval("self.wfile.write(pages[\'%s\'].%s('%s'))" % (path[1], path[2], "', '".join(path[3:])))
+                else:
+                    eval("self.wfile.write(pages[\'%s\'].%s(info))" % \
+                             (path[1], path[2]))
         except IOError:
             self.send_error(404, 'File Not Found.')
     

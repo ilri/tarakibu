@@ -90,6 +90,8 @@ class GPSReader(threading.Thread):
             
     def distance(self, lat, lon):
         distance = ''
+        if not lat or not lon:
+            return float('inf')
         if self.status == 'running':
             if self.distalgo == 'haversine':
                 distance = self.haversine(lat, self.data['latitude'],

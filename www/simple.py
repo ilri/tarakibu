@@ -55,7 +55,7 @@ class simple(SimplePage):
                 output += ajax('input_form', self.animal_input())
                 output += self.focus('animal')
             else:
-                output += ajax('input_form', self.random_input())
+                output += ajax('input_form', self.random_input(info['farmer']))
                 output += self.focus('species')
         else:
             output += ajax('input_form', self.sample_input(info['active_tag'],
@@ -81,6 +81,12 @@ class simple(SimplePage):
       {
         ajaxFunction('http://localhost:%s/','simple/update')
         setTimeout('updateSite()', 500)
+      }
+      function updateAnimalID(value)
+      {
+        var element = document.getElementById('animal_id')
+        var part = element.value.split("/")
+        ajaxFunction('http://localhost:8080/','simple/get_animal_id/' + part[0] + '/' + value );
       }
     </script>
     %s
@@ -131,18 +137,33 @@ class simple(SimplePage):
     def focus(self, target):
         return 'document.sampling.%s.focus();' % target
 
-    def random_input(self):
+    def random_input(self, farmer = ''):
+        if not self.db.get_location(self.gps):
+            return """
+<table>
+<tr><th colspan=2>Enter new location</td></tr>
+<tr><td>Village:</td><td><input type='text' name='village' value=''></td></tr>
+<tr><td>Farmer:</td><td><input type='text' name='farmer' value=''></td></tr>
+</table>
+"""
         return """
 <table>
-<tr><td>Species:</td><td><select name=\'species\'>%s</select></td></tr>
-<tr><td>Animal ID:</td><td><input type='text' name='animal_id' value='%s'></td></tr>
-<tr><td>Approximate Age:</td><td><input type='text' name='age'></td></tr>
-<tr><td>Sex</td><td><select name=\'sex\'><option name=\'female\'>female</option><option name=\'male\'>male</option></select></td></tr>
-<tr><td>Owner:</td><td><input type='text' name='owner'></td></tr>
-<tr><td>Location:</td><td><input type='text' name='location' value='%s'></td></tr>
+<tr><td>Species:</td><td><select name='species' onChange='updateAnimalID(this.value)'>%s</select></td></tr>
+<tr><td>Animal ID:</td><td><input type='text' id='animal_id' name='animal_id' value='%s'></td></tr>
+<tr><td>Approximate Age:</td><td><select name='age'><option name='<1'>&lt;1</option><option name='1-2'>1-2</option><option name='>2'>&gt;2</option></select></td></tr>
+<tr><td>Sex</td><td><select name='sex'><option name='female'>female</option><option name='male'>male</option><option name='castrated'>castrated</option></select></td></tr>
+<tr><td>Last RVF Vaccine:</td><td><input type='text' name='rvf'></td></tr>
+<tr><td>Other Vaccines:</td><td><input type='text' name='rvf'></td></tr>
 <tr><td>Comment:</td><td><input type='text' name='comment'></td></tr>
 </table>
-""" % (self.get_species(), self.db.get_next_animal_id(), self.db.get_location(self.gps))
+<input type='hidden' name='owner' value='%s'>
+<input type='hidden' name='location' value='%s'>
+""" % (self.get_species(), self.get_animal_id(self.db.get_location(self.gps), 'sheep', False), farmer, self.db.get_location(self.gps))
+    
+    def get_animal_id(self, location, species = 'sheep', wrap = True):
+        if wrap:
+            return ajax_value('animal_id', self.db.get_next_animal_id(location, species))
+        return self.db.get_next_animal_id(location, species)
 
     def get_species(self):
         output = ''
@@ -177,6 +198,8 @@ Current Animal: %s
                     info['error'] = errors['unknown_tag']
             else:
                 info['error'] = errors['animal_no_gps']
+        elif 'village' in form:
+            self.input_location(form, info, devices)
         else:
             self.input_sample(form, info, devices)
 
@@ -212,3 +235,14 @@ Current Animal: %s
         else:
             raise Exception('Could not insert animal into database')
     
+    def input_location(self, form, info, devices):
+        village_info = self.db.get_village_info(form['village'][0]);
+        if not village_info:
+            info['error'] = 'Village %s not found in the database!' % form['village'][0]
+        else:
+            info['error'] = ''
+            info['farmer'] = form['farmer'][0]
+            self.db.insert_place(form['village'][0], devices['gps'].data['latitude'],
+                                 devices['gps'].data['longtitude'], 0.5)
+
+        

@@ -146,7 +146,11 @@ a {
                         
 def ajax(target, value):
     value = sanitize(value)
-    return 'document.getElementById("%s").innerHTML=("%s"); ' % (target,value)
+    return 'document.getElementById("%s").innerHTML= "%s"; ' % (target,value)
+
+def ajax_value(target, value):
+    value = sanitize(value)
+    return 'document.getElementById("%s").value = "%s"' % (target, value)
 
 def sanitize(string):
     string = string.replace('\n','')
