@@ -13,5 +13,5 @@ ALTER TABLE animals CHANGE sex sex ENUM('female', 'male', 'castrated');
 ALTER TABLE animals CHANGE tag tag VARCHAR(50);
 ALTER TABLE animal_measures CHANGE animal animal VARCHAR(50);
 ALTER TABLE tag_reads CHANGE rfid rfid VARCHAR(50);
-
-
+ALTER TABLE animal_measures ADD rvf_vaccine VARCHAR(50);
+ALTER TABLE animal_measures ADD vaccines VARCHAR(50);

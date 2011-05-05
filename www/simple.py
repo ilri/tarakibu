@@ -153,7 +153,7 @@ class simple(SimplePage):
 <tr><td>Approximate Age:</td><td><select name='age'><option name='<1'>&lt;1</option><option name='1-2'>1-2</option><option name='>2'>&gt;2</option></select></td></tr>
 <tr><td>Sex</td><td><select name='sex'><option name='female'>female</option><option name='male'>male</option><option name='castrated'>castrated</option></select></td></tr>
 <tr><td>Last RVF Vaccine:</td><td><input type='text' name='rvf'></td></tr>
-<tr><td>Other Vaccines:</td><td><input type='text' name='rvf'></td></tr>
+<tr><td>Other Vaccines:</td><td><input type='text' name='vaccines'></td></tr>
 <tr><td>Comment:</td><td><input type='text' name='comment'></td></tr>
 </table>
 <input type='hidden' name='owner' value='%s'>

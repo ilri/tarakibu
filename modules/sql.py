@@ -225,7 +225,7 @@ class SamplerDb():
     def input_random_animal(self, form):
         try:
             self._query('INSERT INTO animals (tag, sex, species, owner, location) VALUES ("%s", "%s", "%s", "%s", "%s");' % (form['animal_id'][0], form['sex'][0], form['species'][0], form['owner'][0], form['location'][0]))
-            self._query('INSERT INTO animal_measures (animal, approximate_age, comment) VALUES ("%s", "%s", "%s");' % (form['animal_id'][0], form['age'][0], form['comment'][0]))
+            self._query('INSERT INTO animal_measures (animal, approximate_age, rvf_vaccine, vaccines, comment) VALUES ("%s", "%s", "%s", "%s", "%s");' % (form['animal_id'][0], form['age'][0], form['rvf'][0], form['vaccines'][0], form['comment'][0]))
         except:
             raise
         return True
