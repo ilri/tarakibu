@@ -1,1 +1,1 @@
-__all__ = ['rfid', 'gps', 'sql']
+__all__ = ['gps', 'sql']

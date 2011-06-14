@@ -19,27 +19,6 @@ class simple(SimplePage):
         else:
             output += ajax('info', info['msg'])
         output += ajax('error', info['error'])
-        if self.devices['rfid'].data and info['mode'] == 'animal':
-            try:
-                info['active_tag'] = self.db.tag_to_label(\
-                                                 self.devices['rfid'].data)[0]
-                if info['active_tag']:
-                    self.db.insert_tag_read(info['active_tag'],
-                                            self.devices['gps'].data)
-                    info['mode'] = 'sample'
-                    self.devices['rfid'].data = None
-                    output += ajax('input_form',
-                              self.sample_input(info['active_tag'], self.port))
-                    output += self.focus('sample')
-            except:
-                info['error'] = errors['label']
-        if self.devices['rfid'].data and info['mode'] == 'sample':
-            try:
-                info['tag']=self.db.tag_to_label(self.devices['rfid'].data)[0]
-                info['tag_read'] = time()
-                self.devices['rfid'].data = None
-            except:
-                pass
         return output
 
     def new_animal(self, info):
@@ -115,7 +94,6 @@ class simple(SimplePage):
         <div class='box top'>
           <table>
             <tr><td>GPS:</td><td><div id='position'></div></td></tr>
-            <tr><td>RFID:</td><td><div id='reader'></div></td></tr>
           </table>
         </div>
         <div class='box main'>

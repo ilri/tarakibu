@@ -15,6 +15,7 @@ from www.simple import *
 from www.admin import *
 from www.site import *
 
+## The basic settings for the simple sample
 settings = {'name'      :'Simple Sampler'                   ,
             'version'   :'0.8.2 BETA'                       ,
             'port'      :8080                               ,
@@ -23,6 +24,7 @@ settings = {'name'      :'Simple Sampler'                   ,
             'db_user'   :'samples'                          ,
             'db_pass'   :'54mpl35'                          ,
             'info_time' :10}
+            
 info     = {'mode'      :'animal'                           ,
             'target'    :'livestock'                        ,
             'active_tag':None                               ,
@@ -32,15 +34,17 @@ info     = {'mode'      :'animal'                           ,
             'tag_read'  :0,
             'farmer'    :''}
 
+## The database settings
 db       = SamplerDb(host   = settings['db_host'],
                      db     = settings['db_name'],
                      user   = settings['db_user'],
                      passwd = settings['db_pass'])
 
-devices  = {'rfid':RFIDReader('Stick Reader V3', None),
-            'gps' :GPSReader ('/dev/ttyUSB', 38400)}
+## All the devices that we want to be loaded
+devices  = {'gps' :GPSReader ('/dev/ttyUSB', 4800)}
 
-pages    = {'simple':simple(settings, db, devices, info),
+## The pages that will be created by the sampler
+pages = {'simple':simple(settings, db, devices, info),
             'admin' :admin (settings, db, devices, info),
             'site'  :site  (settings, db, devices, info)}
 
@@ -49,7 +53,7 @@ class SamplerServer(BaseHTTPRequestHandler):
     def do_GET(self):
         global pages, devices, settings, info
         try:
-            sys.stderr = open(os.devnull,'w') # tell the server to shut up
+ #           sys.stderr = open(os.devnull,'w') # tell the server to shut up
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
@@ -83,12 +87,12 @@ class SamplerServer(BaseHTTPRequestHandler):
         except IOError:
             self.send_error(501, 'Unsupported Method')
 
+## Start all the devices that need to be started
 for device in devices:
-    devices[device].start()
+    devices[device].start()		#Call the respective threads
 
 server = HTTPServer(('', settings['port']), SamplerServer)
-print '* %s web server running on port %s.' % (settings['name'],\
-                                               settings['port'])
+print '* %s web server running on port %s.' % (settings['name'], settings['port'])
 
 try:
     server.serve_forever()

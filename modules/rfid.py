@@ -1,22 +1,25 @@
-# RFID Reader thread
-# By: Martin Norling, ILRI, 2010
-#
-# Synchronizes and listens to an RFID device storing its output in the 
-# self.data. Built to use with the 'Stick Reader V3' RFID animal tag reader 
-# but might be able to be used with other RFID readers.
-#
-# Takes a device dictionary as input on the format.
-# device = { 'name':<RFID common name>
-#            'addr':None                # auto finds address
-#            'connected':False          # defaults as False
-#
+#!/usr/bin/python2.6.6
 
 import threading
 import bluetooth
 import re
 from time import sleep
 
-class RFIDReader(threading.Thread):
+""" @package RFID_Reader
+	By: Martin Norling, ILRI, 2010
+	
+	 Synchronizes and listens to an RFID device storing its output in the 
+	 self.data. Built to use with the 'Stick Reader V3' RFID animal tag reader 
+	 but might be able to be used with other RFID readers.
+	
+	 Takes a device dictionary as input on the format.
+	 device = { 'name':<RFID common name>
+	            'addr':None                # auto finds address
+	            'connected':False          # defaults as False
+"""	
+class RFIDReader(threading.Thread):	
+
+	## The class constructor
     def __init__(self, name, addr):
         threading.Thread.__init__(self)
         self.name = name

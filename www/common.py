@@ -14,7 +14,6 @@ class SimplePage():
     def update(self, info):
         output = ''
         output  = ajax('position', position(self.devices['gps']))
-        output += ajax('reader',   reader(self.devices['rfid']))
         return output
 
     def header(self):
@@ -49,6 +48,7 @@ def ajax_function(port):
       xmlhttp.send(null); 
       }
 """
+
 def site_style():
     return """<style type='text/css'>
 body {
@@ -162,18 +162,30 @@ def position(gps):
     if gps.status == 'Out of Sync':
         return '<div style=\'color: #ff0;\'>Out of Sync</div>'
     if gps.status == 'running':
-        return '<div style=\'color: #0f0;\'>%s, %s, %s</div>' % (\
+        return '<div style=\'color: #0f0;\'>%s, %s, %s, %s(EAT)</div>' % (\
            gps_format(gps.data['latitude']), 
            gps_format(gps.data['longtitude']), 
-           gps.data['altitude'])
+           gps.data['altitude'],
+           timeFormat(gps.data['time']))
     return '<div style=\'color: #f00;\'>Disconnected</div>'
 
 def gps_format(pos):
-    output = pos
-    if type(pos) == type(float()):
-        output = '%+.6f' % pos
-        output = output.zfill(10)
-    return output
+	"""
+	Formats the raw longitude or latitude
+	"""
+	output = pos
+	if type(pos) == type(float()):
+		output = '%+.6f' % pos
+		output = output.zfill(10)
+	return output
+
+def timeFormat(rawTime):
+	"""
+	Formats the raw time received from the satellites
+	"""
+	formattedTime = rawTime[0:rawTime.index('.')]
+	formattedTime = str(int(formattedTime[0:2]) + 3)  + ':' + formattedTime[2:4] + ':' + formattedTime[4:6]
+	return formattedTime
 
 def reader(rfid):
     color = '#f00'
