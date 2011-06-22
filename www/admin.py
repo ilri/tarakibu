@@ -6,9 +6,9 @@ class admin(SimplePage):
         return """<html>
   <head>
     <title>%s v. %s - Admin</title>
-    <script type='text/javascript' src='resource?jquery_1_6_1.js'></script>
-    <script type='text/javascript' src='resource?dgea.js'></script>
-    <link rel='stylesheet' type='text/css' href='resource?dgea.css'>
+    <script type='text/javascript' src='resource?js/jquery_1_6_1.js'></script>
+    <script type='text/javascript' src='resource?js/dgea.js'></script>
+    <link rel='stylesheet' type='text/css' href='resource?css/dgea.css'>
   </head>
   <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','admin/sample_types')">
     <div class='site'>

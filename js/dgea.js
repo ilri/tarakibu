@@ -47,7 +47,7 @@ var DGEA = {
       if(typeof name == undefined){ //look out for the first form that needs to be sent back to the server
          
       }
-      $.()
+      //$.()
    },
    
    /**
