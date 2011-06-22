@@ -79,7 +79,7 @@ class simple(SimplePage):
             <div class='box main'>
                 <h2><a id='dgea_sampling' href="javascript:DGEA.ajaxFunction('simple/dgea_form')";>DGEA Sampling</a></h2>
                 <hr />
-                <form action='?' method='post' enctype='multipart/form-data' name='sampling'>
+                <form action='?' method='post' name='sampling'>
                     <input type='hidden' name='page' value='simple'>
                     <div class='scroller input' id='input_form'></div>
                     <hr />
@@ -120,7 +120,7 @@ class simple(SimplePage):
 <tr><th colspan=2>Select the cow being sampled</td></tr>
 <tr><td>Sites:</td><td><select name='sites'>%s</select></td></tr>
 <tr><td>Household ID:</td><td><select name='household' onChange='javascript:DGEA.fetchHouseholdCattle();'><option value='0'>Select a Household</option>%s</select></td></tr>
-<tr><td>Cattle ID:</td><td><select name='cattleId'><option value='0'>Select One</option></select></td></tr>
+<tr><td>Cattle ID:</td><td id='householdCattle'><select><option value='0'>Select One</option></select></td></tr>
 </table>
 <script type='text/javascript'>
     $('[name=household]').bind('change', DGEA.fetchHouseholdCattle);    //seems this javascript scripts are not being implemented...quite sad
@@ -180,7 +180,7 @@ Current Animal: %s
 """ % (title.upper(), port) 
 
     def parse_form(self, form, info, devices):
-        #print form
+        print form
         if 'household' in form:
             """
             A household has been selected, get all the animals in this household
@@ -253,30 +253,24 @@ Current Animal: %s
             self.db.insert_place(form['village'][0], devices['gps'].data['latitude'],
                                  devices['gps'].data['longtitude'], 0.5)
 
-    def selectedHousehold(self, info):
-        print info
-        if 'household' in form:
-            """
-            A household has been selected, get all the animals in this household
-            """
-            if devices['gps'].status == 'running':
-                self.householdCattle(form, info, devices)
-            else:
-                print "No valid GPS coordinates...cannot proceed!";
-                
-        elif 'household' in form and 'cattleId' in form:
-            """
-            Ready to start adding the samples to this particular animal
-            """
+    def selectedHousehold(self, householdId, devices):
+        if devices['gps'].status == 'running':
+            return self.householdCattle(householdId, devices)
+        else:
+            print "No valid GPS coordinates...cannot proceed!";
             
         
-    def householdCattle(self, form, info, devices):
+    def householdCattle(self, householdId, devices):
         """
         Do the necessary checks for this household and then select all the cattle from this household
         """
         #check that the current location of this household falls within the radius of where we expect it to be
         
         #seems all is ok, get all the animals associated with this household
-        cattleInHousehold = self.db.getHouseholdCattle(form['household'][0])
+        cattleInHousehold = self.db.getHouseholdCattle(householdId)
         #now lets create the dropdown for the animals
-        print cattleInHousehold
+        output = "<select name='cow2sample'>"
+        for cow in cattleInHousehold:
+            output += '<option value=\'%s\'>%s</option>' % (cow[0], cow[1])
+        output += '</select>'
+        return output

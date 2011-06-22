@@ -17,7 +17,7 @@ var DGEA = {
          return;
       }
       //create a request for this data
-       DGEA.ajaxFunction('simple/selectedHousehold');
+       DGEA.postForm('simple/selectedHousehold', 'householdCattle', 'sampling');
    },
    
 	displayCattleInHomestead: function(){
@@ -42,12 +42,23 @@ var DGEA = {
    
    /**
     * Sends the defined form data to the server if the form is designed, else sends the data of the first form
+    * 
+    * modules: A string that defines which modules are to be executed on the server
+    * field:   A string with fieldId that is meant to be updated with the results from the server
+    * name:    (optional) The name of the form whose details we want sent. In case none is defined, we send the details of the first form
     */
-   postForm: function(name){
-      if(typeof name == undefined){ //look out for the first form that needs to be sent back to the server
+   postForm: function(modules, field, name){
+      var params;
+      if(name == undefined){ //look out for the first form that needs to be sent back to the server
          
       }
-      //$.()
+      else{ //encode the contents of the named form and send them to the server
+         params = $('[name='+name+']').formSerialize();
+      }
+      DGEA.field2Update = field;
+      //$.post('http://localhost:'+DGEA.port+'/'+modules, params, DGEA.updateField);
+      //$.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/'+modules, data: $.toJSON(params), dataType: 'html', success:DGEA.updateField});
+      $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/simple/save_events_json', data: params, dataType: 'html', success:DGEA.updateField});
    },
    
    /**
@@ -71,5 +82,15 @@ var DGEA = {
       }
       xmlhttp.open("GET", 'http://localhost:'+DGEA.port+'/'+params, true);
       xmlhttp.send(null); 
+   },
+   
+   updateField: function(result){
+      if(DGEA.field2Update == undefined){
+         //we dont know what to update....
+         return;
+      }
+      else{
+       $('#'+DGEA.field2Update).html(result);
+      }
    }
 };

@@ -5,9 +5,13 @@ import sys
 import os
 import MySQLdb
 import cgi
+import cgitb
+cgitb.enable(display=1, logdir="/tmp")
 import StringIO
 from time import sleep, time
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from django.http import HttpResponse
+from django.utils import simplejson as json
 from modules.rfid import RFIDReader
 from modules.gps import GPSReader
 from modules.sql import SamplerDb
@@ -96,9 +100,18 @@ class SamplerServer(BaseHTTPRequestHandler):
         global pages, devices, settings, info, mode, msg, active_tag, info, error
         try:
             ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+            #data_string = self.rfile.read()
+            if ctype == 'application/x-www-form-urlencoded':
+                length = int(self.headers.getheader('content-length'))
+                postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
+                #now call the function that is meant to process this request
+                if ('household' in postvars):
+                    output = pages[postvars['page'][0]].selectedHousehold(postvars['household'][0], devices)
+                    self.wfile.write(output)
             if ctype == 'multipart/form-data':
                 self.send_response(301)
                 form = cgi.parse_multipart(self.rfile, pdict)
+                print form
                 pages[form['page'][0]].parse_form(form, info, devices)
                 self.send_header('Location', 'http://localhost:%s/%s' % (settings['port'], form['page'][0]))
                 self.end_headers()
