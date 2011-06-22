@@ -1,20 +1,23 @@
+"""
+CHANGELOG
+========================
+	- Separated all the javascript and css from the HTML
+"""
+
 from common import *
 
 class site(SimplePage):
 
     def site(self, info):
         return """
-%s
-      function updateSite()
-      {
-        ajaxFunction('http://localhost:%s/','site/update')
-        ajaxFunction('http://localhost:%s/','site/location')
-        setTimeout('updateSite()', 500)
-      }
-    </script>  
-    %s
+<html>
+  <head>
+    <title>%s v. %s - Admin</title>
+    <script type='text/javascript' src='resource?jquery_1_6_1.js'></script>
+    <script type='text/javascript' src='resource?dgea.js'></script>
+    <link rel='stylesheet' type='text/css' href='resource?dgea.css'>
   </head>
-  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','site/previous_samples');">
+  <body onLoad="DGEA.ajaxFunction('http://localhost:%s/','site/previous_samples');">
     <div class='site'>
       <div class='left'>
         <div class='box top'>
@@ -50,10 +53,13 @@ class site(SimplePage):
         <a href='/'><< Sampling Page</a> * %s v. %s. &copy; Martin Norling, AVID Project, ILRI, 2010 * <a href='/admin'>Administration Page >></a>
       </div>
     </div>
+    <script type='text/javascript'>
+    	//bind the onload event of the body
+    	$('body).bind('load', DGEA.updateSite);
+    </script>
   </body>
 </html>
-""" % (self.header(), self.port, self.port, site_style(), self.port, \
-       self.port, self.title, self.version)
+""" % (self.title, self.version, self.port, self.port, site_style(), self.port, self.port, self.title, self.version)
 
     def parse_form(self, form, info, devices):
         samples = {}

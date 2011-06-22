@@ -34,11 +34,9 @@ class simple(SimplePage):
                 output += ajax('input_form', self.animal_input())
                 output += self.focus('animal')
             else:
-                output += ajax('input_form', self.random_input(info['farmer']))
-                output += self.focus('species')
+                output += ajax('input_form', self.random_input(info['farmer']))     #just update the page
         else:
-            output += ajax('input_form', self.sample_input(info['active_tag'],
-                                                           self.port))
+            output += ajax('input_form', self.sample_input(info['active_tag'], self.port))
             output += self.focus('sample')
         return output
 
@@ -46,108 +44,123 @@ class simple(SimplePage):
         info['target'] = 'livestock'
         return self.input_form(info)
 
-    def random_form(self, info):
+    def dgea_form(self, info):
         info['target'] = 'random'
         return self.input_form(info)
 
     def site(self, info):
+        """
+        Creates the initial page that will be displayed on launching dgea sampler
+        """
         return """<html>
   <head>
     <title>%s v. %s</title>
-    <script type=\'text/javascript\'>
-    %s
-      function updateSite()
-      {
-        ajaxFunction('http://localhost:%s/','simple/update')
-        setTimeout('updateSite()', 500)
-      }
-      function updateAnimalID(value)
-      {
-        var element = document.getElementById('animal_id')
-        var part = element.value.split("/")
-        ajaxFunction('http://localhost:8080/','simple/get_animal_id/' + part[0] + '/' + value );
-      }
+    <script type='text/javascript' src='resource?jquery_1_6_1.js'></script>
+    <script type='text/javascript' src='resource?dgea.js'></script>
+    <link rel='stylesheet' type='text/css' href='resource?dgea.css'>
+    <script type='text/javascript'>
+        //set the port that will be used on the js side
+        DGEA.port = %s;
+    	//call the updateSite function once the page is fully loaded
+        $(document).ready(function() {
+            DGEA.updateSite('simple');
+            DGEA.ajaxFunction('simple/input_form');   //this needs to be called only once when the page finishes loading not recursively
+        });
     </script>
-    %s
   </head>
-  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','simple/input_form')">
+  <body>
     <div class='site'>
-      <div class='left'>
-        <div class='box top'>
-          <h1>%s</h1>
-        </div>
-        <div class='box main'>
-          <h2><a href=javascript:ajaxFunction('http://localhost:%s','/simple/livestock_form')>Livestock</a>|
-              <a href=javascript:ajaxFunction('http://localhost:%s','/simple/random_form')>Random</a></h2>
-          <hr />
-          <form action='http://localhost:%s/' method='post' enctype='multipart/form-data' name='sampling'>
-            <input type='hidden' name='page' value='simple'>
-            <div class='scroller input' id='input_form'></div>
-            <hr />
-            <div class='submitbutton'>
-              <input type='submit' value='Submit'>
+        <div class='left'>
+            <div class='box top'>
+                <h1>%s</h1>
             </div>
-          </form>
+            <div class='box main'>
+                <h2><a id='dgea_sampling' href="javascript:DGEA.ajaxFunction('simple/dgea_form')";>DGEA Sampling</a></h2>
+                <hr />
+                <form action='?' method='post' enctype='multipart/form-data' name='sampling'>
+                    <input type='hidden' name='page' value='simple'>
+                    <div class='scroller input' id='input_form'></div>
+                    <hr />
+                    <div class='submitbutton'><input type='submit' value='Submit'></div>
+                </form>
+            </div>
         </div>
-      </div>
-      <div class='right'>
-        <div class='box top'>
-          <table>
-            <tr><td>GPS:</td><td><div id='position'></div></td></tr>
-          </table>
-        </div>
+        <div class='right'>
+            <div class='box top'>
+                <table>
+                    <tr><td>GPS:</td><td><div id='position'></div></td></tr>
+                </table>
+            </div>
         <div class='box main'>
-          <h2>Information</h2>
-          <hr />
-          <div class='scroller info' id='info'></div>
-          <div class='scroller error' id='error'></div>
+            <h2>Information</h2>
+            <hr />
+            <div class='scroller info' id='info'></div>
+            <div class='scroller error' id='error'></div>
         </div>
-      </div>
-      <div class='footer'>
-        <a href='/admin'><< Administration page</a> * %s v. %s. &copy; Martin Norling, AVID Project, ILRI, 2010 * <a href='/site'>Site information >></a>
-      </div>
     </div>
+    <div class='footer'>
+        <a href='/admin'>< Administration page</a> * %s v. %s. &copy; Martin Norling, AVID Project, ILRI, 2010 * <a href='/site'>Site information >></a>
+    </div>
+  </div>
+    <script type='text/javascript'>
+        $('#dgea_sampling').bind('click', DGEA.ajaxFunction);
+    </script>
   </body>
 </html>
-""" % (self.title, self.version, ajax_function(self.port), self.port, \
-       site_style(), self.port, self.title, self.port, self.port, self.port, self.title, self.version)
+""" % (self.title, self.version, self.port, self.title, self.title, self.version)
 
     def focus(self, target):
         return 'document.sampling.%s.focus();' % target
 
     def random_input(self, farmer = ''):
-        if not self.db.get_location(self.gps):
-            return """
-<table>
-<tr><th colspan=2>Enter new location</td></tr>
-<tr><td>Village:</td><td><input type='text' name='village' value=''></td></tr>
-<tr><td>Farmer:</td><td><input type='text' name='farmer' value=''></td></tr>
-</table>
-"""
         return """
 <table>
-<tr><td>Species:</td><td><select name='species' onChange='updateAnimalID(this.value)'>%s</select></td></tr>
-<tr><td>Animal ID:</td><td><input type='text' id='animal_id' name='animal_id' value='%s'></td></tr>
-<tr><td>Approximate Age:</td><td><select name='age'><option name='<1'>&lt;1</option><option name='1-2'>1-2</option><option name='>2'>&gt;2</option></select></td></tr>
-<tr><td>Sex</td><td><select name='sex'><option name='female'>female</option><option name='male'>male</option><option name='castrated'>castrated</option></select></td></tr>
-<tr><td>Last RVF Vaccine:</td><td><input type='text' name='rvf'></td></tr>
-<tr><td>Other Vaccines:</td><td><input type='text' name='vaccines'></td></tr>
-<tr><td>Comment:</td><td><input type='text' name='comment'></td></tr>
+<tr><th colspan=2>Select the cow being sampled</td></tr>
+<tr><td>Sites:</td><td><select name='sites'>%s</select></td></tr>
+<tr><td>Household ID:</td><td><select name='household' onChange='javascript:DGEA.fetchHouseholdCattle();'><option value='0'>Select a Household</option>%s</select></td></tr>
+<tr><td>Cattle ID:</td><td><select name='cattleId'><option value='0'>Select One</option></select></td></tr>
 </table>
-<input type='hidden' name='owner' value='%s'>
-<input type='hidden' name='location' value='%s'>
-""" % (self.get_species(), self.get_animal_id(self.db.get_location(self.gps), 'sheep', False), farmer, self.db.get_location(self.gps))
+<script type='text/javascript'>
+    $('[name=household]').bind('change', DGEA.fetchHouseholdCattle);    //seems this javascript scripts are not being implemented...quite sad
+</script>
+""" % (self.allSites(), self.allHouseholds())
     
     def get_animal_id(self, location, species = 'sheep', wrap = True):
         if wrap:
             return ajax_value('animal_id', self.db.get_next_animal_id(location, species))
         return self.db.get_next_animal_id(location, species)
 
-    def get_species(self):
+    def cattleInSite(self):
+        """
+        Create a select component for the cattle
+        """
         output = ''
-        for animal in self.db.get_species():
-            output += '<option value=\'%s\'>%s</option>' % (animal[0], animal[0])
+        for animal in self.db.getCattle():
+            output += "<option value='%s'>%s</option>" % (animal[0], animal[0])
         return output
+
+    def allHouseholds(self):
+        """
+        Create a select component for the household
+        """
+        output = ''
+        for household in self.db.getHouseholds():
+            output += '<option value=\'%s\'>%s</option>' % (household[1], household[0])
+        return output
+
+    def allSites(self):
+        """
+        Create a select component for the sites
+        """
+        output = ''
+        for site in self.db.getSites():
+            output += '<option value=\'%s\'>%s</option>' % (site[0], site[0])
+        return output
+        
+    def selectedSite(self, info):
+        """
+        create a select component for the households in the selected sites
+        """
 
     def animal_input(self):
         return """Animal tag: <input type='text' name='animal' id='animal'>"""
@@ -165,7 +178,23 @@ Current Animal: %s
 """ % (title.upper(), port) 
 
     def parse_form(self, form, info, devices):
-        if 'animal' in form or 'species' in form:
+        #print form
+        if 'household' in form:
+            """
+            A household has been selected, get all the animals in this household
+            """
+            if devices['gps'].status == 'running':
+                self.selectedHousehold(form, info, devices)
+            else:
+                print "No valid GPS coordinates...cannot proceed!";
+                
+        elif 'household' in form and 'cattleId' in form:
+            """
+            Ready to start adding the samples to this particular animal
+            """
+            
+            
+        if 'household' in form or 'species' in form:
             if devices['gps'].status == 'running':
                 try:
                     if 'species' in form:
@@ -194,8 +223,7 @@ Current Animal: %s
     def input_sample(self, form, info, devices):
         if devices['gps'].status == 'running':
             if self.db.verify_sample(form['sample'][0]):
-                self.db.insert_sample(form['sample'][0], info['active_tag'], \
-                                      devices['gps'].data, form['comment'][0])
+                self.db.insert_sample(form['sample'][0], info['active_tag'], devices['gps'].data, form['comment'][0])
                 previous = '%s' % self.db.get_samples(info['active_tag'])
                 info['error'] = ''
             else:
@@ -223,4 +251,30 @@ Current Animal: %s
             self.db.insert_place(form['village'][0], devices['gps'].data['latitude'],
                                  devices['gps'].data['longtitude'], 0.5)
 
+    def selectedHousehold(self, info):
+        print info
+        if 'household' in form:
+            """
+            A household has been selected, get all the animals in this household
+            """
+            if devices['gps'].status == 'running':
+                self.householdCattle(form, info, devices)
+            else:
+                print "No valid GPS coordinates...cannot proceed!";
+                
+        elif 'household' in form and 'cattleId' in form:
+            """
+            Ready to start adding the samples to this particular animal
+            """
+            
         
+    def householdCattle(self, form, info, devices):
+        """
+        Do the necessary checks for this household and then select all the cattle from this household
+        """
+        #check that the current location of this household falls within the radius of where we expect it to be
+        
+        #seems all is ok, get all the animals associated with this household
+        cattleInHousehold = self.db.getHouseholdCattle(form['household'][0])
+        #now lets create the dropdown for the animals
+        print cattleInHousehold

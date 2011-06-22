@@ -53,10 +53,8 @@ class SamplerDb():
         prefix = self._query('SELECT prefix FROM sample_types;')
         for test in prefix:
             if test[0] == barcode[:len(test[0])].upper() and len(barcode) == 9:
-                if self._query('SELECT barcode FROM samples \
-                                       WHERE barcode="%s" AND prefix="%s";' % \
-                                      (barcode[len(test[0]):],
-                                       barcode[:len(test[0])].upper())):
+                if self._query('SELECT barcode FROM samples WHERE barcode="%s" AND prefix="%s";' \
+						% (barcode[len(test[0]):],barcode[:len(test[0])].upper())):
                     return False
                 return True
         return False
@@ -230,8 +228,32 @@ class SamplerDb():
             raise
         return True
 
-    def get_species(self):
-        return self._query('SELECT common_name FROM species ORDER BY common_name DESC;');
+    def getHouseholds(self):
+		"""
+		Get all the households that are in the selected site
+		"""
+		output = []
+		data = self._query('SELECT hhid, id FROM household;')
+		if data:
+			for household in data:
+				output.append(household)
+		return output
+
+    def getHouseholdCattle(self, householdId):
+		"""
+		Get all the cattle in the selected household
+		"""
+		output = []
+		householdCattle = self._query("SELECT id, name FROM dgea_animals where hhId = %d ORDER BY name ASC;" % int(householdId))
+		for cattle in householdCattle:
+			output.append(cattle)
+		return output
+    
+    def getSites(self):
+		"""
+		Get all the sites
+		"""
+		return self._query('SELECT name FROM sites ORDER BY name ASC;');
 
     def get_location(self, gps):
         location = ''

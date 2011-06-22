@@ -5,6 +5,7 @@ import sys
 import os
 import MySQLdb
 import cgi
+import StringIO
 from time import sleep, time
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from modules.rfid import RFIDReader
@@ -16,13 +17,16 @@ from www.admin import *
 from www.site import *
 
 ## The basic settings for the simple sample
+# We are including the absolute path to where the random sampler is located so that we can be able to include the files and the other
+# resources that are need
 settings = {'name'      :'Simple Sampler'                   ,
             'version'   :'0.8.2 BETA'                       ,
             'port'      :8080                               ,
             'db_host'   :'localhost'                        ,
-            'db_name'   :'samples'                          ,
-            'db_user'   :'samples'                          ,
-            'db_pass'   :'54mpl35'                          ,
+            'absolute_path' : '/var/www/randomsampler'		,	#The absolute path to where the sampler is located
+            'db_name'   :'dgea'                          ,
+            'db_user'   :'root'                          ,
+            'db_pass'   :'admin'                          ,
             'info_time' :10}
             
 info     = {'mode'      :'animal'                           ,
@@ -53,36 +57,50 @@ class SamplerServer(BaseHTTPRequestHandler):
     def do_GET(self):
         global pages, devices, settings, info
         try:
- #           sys.stderr = open(os.devnull,'w') # tell the server to shut up
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
+			#sys.stderr = open('error.log','a') # tell the server to shut up
+            pathMatch = re.match( r'/resource(.*)', self.path, re.M|re.I)
+            if pathMatch != None:
+				self.send_response(200)
+				self.send_header('Content-type', 'text/html')
+				self.end_headers()
+				
+            path = self.path.split('/')
+			
             if self.path == '/':
                 self.wfile.write(pages['simple'].site(info))
             else:
-                path = self.path.split('/')
-                if len(path) <= 2:
+                pathMatch = re.match( r'/resource\?(.*)', self.path, re.M|re.I)
+                #print path
+                #print pathMatch
+                if pathMatch != None:
+					#we are requesting for a file, it can be a javascript, css or just a plain text file 
+					#jst read the whole file and output it
+					try:
+						f = open(pathMatch.group(1), "rt")
+					except IOError:
+						self.send_error(404, 'Requested file %s not found.' % pathMatch.group(1))
+						return
+					self.wfile.write(f.read())
+					f.close()
+					return
+                elif len(path) <= 2:
                     path.append('site')
-                if len(path) > 3:
+                elif len(path) > 3:
                     eval("self.wfile.write(pages[\'%s\'].%s('%s'))" % (path[1], path[2], "', '".join(path[3:])))
                 else:
-                    eval("self.wfile.write(pages[\'%s\'].%s(info))" % \
-                             (path[1], path[2]))
+                    eval("self.wfile.write(pages[\'%s\'].%s(info))" % (path[1], path[2]))
         except IOError:
             self.send_error(404, 'File Not Found.')
     
     def do_POST(self):
-        global pages, devices, settings, info,\
-               mode, msg, active_tag, info, error
+        global pages, devices, settings, info, mode, msg, active_tag, info, error
         try:
-            ctype, pdict = cgi.parse_header(\
-                           self.headers.getheader('content-type'))
+            ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
             if ctype == 'multipart/form-data':
                 self.send_response(301)
                 form = cgi.parse_multipart(self.rfile, pdict)
                 pages[form['page'][0]].parse_form(form, info, devices)
-                self.send_header('Location', 'http://localhost:%s/%s' \
-                                 % (settings['port'], form['page'][0]))
+                self.send_header('Location', 'http://localhost:%s/%s' % (settings['port'], form['page'][0]))
                 self.end_headers()
         except IOError:
             self.send_error(501, 'Unsupported Method')

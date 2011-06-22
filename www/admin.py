@@ -6,15 +6,9 @@ class admin(SimplePage):
         return """<html>
   <head>
     <title>%s v. %s - Admin</title>
-    <script type=\'text/javascript\'>
-    %s
-      function updateSite()
-      {
-        ajaxFunction('http://localhost:%s/','admin/update')
-        setTimeout('updateSite()', 500)
-      }
-    </script>  
-    %s
+    <script type='text/javascript' src='resource?jquery_1_6_1.js'></script>
+    <script type='text/javascript' src='resource?dgea.js'></script>
+    <link rel='stylesheet' type='text/css' href='resource?dgea.css'>
   </head>
   <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','admin/sample_types')">
     <div class='site'>
@@ -54,9 +48,7 @@ class admin(SimplePage):
     </div>
   </body>
 </html>
-""" % (self.title, self.version, ajax_function(self.port), self.port, \
-       site_style(), self.port, self.port, \
-       self.port, self.title, self.version)
+""" % (self.title, self.version, self.port, self.port, self.port, self.title, self.version)
         
     def sample_types(self, info):
         info  = '<table>'
