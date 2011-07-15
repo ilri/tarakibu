@@ -42,6 +42,7 @@ a {
    margin: 10px 0 0 0;
    font-size: 0.9em;
 }
+
 .box.main {
    margin: 10px 0 0 0;
    height: 345px;
@@ -78,13 +79,42 @@ a {
 .large {
    height: 270px;
 }
+
 .error {
    color: #f00;
-   height: 97px;
+   height: auto;
 }
+
+.general {
+   color: #F0FF00;
+   height: auto;
+}
+
 .input {
    height: 225px;
 }
+
 .submitbutton {
    text-align: right;
+}
+
+.invalid_gps{
+   font-weight: bold;
+   color: red;
+}
+
+#gps_position .gps_initializing{
+   color: #FF0000;
+}
+
+#gps_position .gps_out_of_sync, #gps_position .gps_disconnected{
+   color: #FF0000;
+}
+
+#gps_position .gps_running{
+   color: #00FF00;
+}
+
+.delete_sample, .delete_animal{
+   cursor: pointer;
 }

@@ -5,40 +5,65 @@ import re
 class SamplerDb():
     def __init__(self, host, user, passwd, db):
         self.error = None
-        try:
-            self.host = host
-            self.usr  = user
-            self.pwd  = passwd
-            self.db   = db
-        except:
-            raise
+        self.host = host
+        self.usr  = user
+        self.pwd  = passwd
+        self.db   = db
+        self.curQuery = ''
     
     def _query(self, query):
+        """
+        Initialize a connection to the database and execute any query that needs execution
+        """
         try:
-            connection = MySQLdb.connect(user = self.usr,  passwd = self.pwd,
-                                         host = self.host, db     = self.db)
+            connection = MySQLdb.connect(user = self.usr,  passwd = self.pwd, host = self.host, db = self.db)
             db = connection.cursor()
         except:
             print 'Exception: Could not connect to Database'
             raise
+        #now lets execute the passed query
+        #print query
         try:
             db.execute(query)
+            self.lastInsertId = connection.insert_id()
+            connection.commit()
+            #get all the data as a dictionary
             return db.fetchall()
+        
         except:
             print 'Exception: Malformed Query "%s"' % query
             raise
     
-    def split_barcode(self, barcode):
+    def dictQuery(self):
+        """
+        Returns a dictionary as the results instead of a tuple
+        """
+        try:
+            connection = MySQLdb.connect(user = self.usr,  passwd = self.pwd, host = self.host, db = self.db)
+            db = connection.cursor(MySQLdb.cursors.DictCursor)
+        except:
+            print 'Exception: Could not connect to Database'
+            raise
+        #print query
+        try:
+            db.execute(self.curQuery)
+            #get all the data as a dictionary
+            return db.fetchall()
+        
+        except:
+            print 'Exception: Malformed Query "%s"' % query
+            raise
+    
+    def isBarcodePrefixDefined(self, barcode):
+        """
+        Checks whether the prefix of the barcode is defined in the database or we have an alien sample
+        """
         barcode = barcode.upper()
-        prefix = ''
         for prefix_test in self._query('SELECT prefix FROM sample_types;'):
             if barcode.startswith(prefix_test[0]):
-                prefix = prefix_test[0].upper()
-                break
+                return 0
         if not prefix:
-            raise Exception('Unknown prefix')
-        barcode = barcode[len(prefix):]
-        return prefix, barcode
+            return 1
 
     def tag_to_label(self, tag):
         return self._query('SELECT label FROM active_tags \
@@ -228,32 +253,62 @@ class SamplerDb():
             raise
         return True
 
+# -- Kihara's modifications
+
     def getHouseholds(self):
-		"""
-		Get all the households that are in the selected site
-		"""
-		output = []
-		data = self._query('SELECT hhid, id FROM household;')
-		if data:
-			for household in data:
-				output.append(household)
-		return output
+        """
+        Get all the households that are in the selected site
+        """
+        output = []
+        data = self._query('SELECT hhid, id FROM households;')
+        if data:
+            for household in data:
+                output.append(household)
+        return output
 
     def getHouseholdCattle(self, householdId):
-		"""
-		Get all the cattle in the selected household
-		"""
-		output = []
-		householdCattle = self._query("SELECT id, name FROM dgea_animals where hhId = %d ORDER BY name ASC;" % int(householdId))
-		for cattle in householdCattle:
-			output.append(cattle)
-		return output
+        """
+        Get all the cattle in the selected household
+        """
+        output = []
+        householdCattle = self._query("SELECT id, name FROM dgea_animals where hhId = %d ORDER BY name ASC;" % int(householdId))
+        for cattle in householdCattle:
+            output.append(cattle)
+        return output
     
     def getSites(self):
-		"""
-		Get all the sites
-		"""
-		return self._query('SELECT name FROM sites ORDER BY name ASC;');
+        """
+        Get all the sites
+        """
+        return self._query('SELECT name FROM sites ORDER BY name ASC;');
+
+    def logGpsData(self, gpsData):
+        """
+        Logs the gps data at this current instance and returns the id of the logged GPS data
+        """
+        dateTime = gpsData['date'] + ' ' + gpsData['formattedTime']
+        self._query('INSERT INTO gps_data(read_time, latitude, longtitude, altitude, satellites, hdop, raw_data)  \
+                     VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s")' % \
+                    (dateTime, gpsData['latitude'], gpsData['longtitude'], gpsData['altitude'], gpsData['satellites'], gpsData['dilution'], gpsData['raw']))
+        print 'logged the gps data'
+        return self.lastInsertId
+    
+
+    def logAnimalRead(self, gpsId, animalId, event):
+        """
+        We have 'read' an animal in the aim of bleeding it, so lets log this event
+        """
+        self._query("insert into animal_reads(animalId, gps_id, action) values(%s, %s, '%s')" % (animalId, gpsId, event))
+        return self.lastInsertId
+
+
+    def logSampleRead(self, barcode, gpsData, action):
+        """
+        Logs a sample read. A sample was scanned for whichever purpose. This is for the sake of trace-ability
+        """
+        dateTime = gpsData['date'] + ' ' + gpsData['formattedTime']
+        self._query("insert into sample_reads(barcode, date_time, action) values('%s', '%s', '%s')" % (barcode, dateTime, action))
+
 
     def get_location(self, gps):
         location = ''
@@ -262,7 +317,8 @@ class SamplerDb():
                 location = place[0]
                 break
         return location
-    
+
+
     def get_village_info(self, village):
         query = 'SELECT village, province, district FROM place_infos WHERE village = "%s";' % village
         return self._query(query)

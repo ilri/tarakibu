@@ -1,7 +1,8 @@
 import re
 
 class SimplePage():
-    def __init__(self, settings, db, devices, info):
+    def __init__(self, settings, db, devices, info, logger):
+        logger.info('Initializing the system settings')
         self.title = settings['name']
         self.version = settings['version']
         self.port = settings['port']
@@ -10,11 +11,6 @@ class SimplePage():
         self.devices = devices
         self.info = info
         self.gps = devices['gps']
-    
-    def update(self, info):
-        output = ''
-        output  = ajax('position', position(self.devices['gps']))
-        return output
 
 def ajax_function(port):
     return """
@@ -42,18 +38,22 @@ def sanitize(string):
     string = string.replace('\n','')
     return string
 
-def position(gps):
+def gpsPosition(gps):
+    """
+    Return the current GPS position
+    """
     if gps.status == 'initializing':
-        return '<div style=\'color: #f00;\'>Initializing</div>'
+        return "<div class='gps_initializing'>Initializing</div>"
     if gps.status == 'Out of Sync':
-        return '<div style=\'color: #ff0;\'>Out of Sync</div>'
+        return "<div class='gps_out_of_sync'>Out of Sync</div>"
     if gps.status == 'running':
-        return '<div style=\'color: #0f0;\'>%s, %s, %s, %s(EAT)</div>' % (\
-           gps_format(gps.data['latitude']), 
-           gps_format(gps.data['longtitude']), 
-           gps.data['altitude'],
-           timeFormat(gps.data['time']))
-    return '<div style=\'color: #f00;\'>Disconnected</div>'
+        return "<div class='gps_running'>%s, %s, %s, %s(%s)</div>" % (\
+            gps_format(gps.data['latitude']), 
+            gps_format(gps.data['longtitude']), 
+            gps.data['altitude'],
+            gps.data['formattedTime'],
+            gps.timeZoneName)
+    return "<div class='gps_disconnected'>Disconnected</div>"
 
 def gps_format(pos):
 	"""
@@ -64,20 +64,6 @@ def gps_format(pos):
 		output = '%+.6f' % pos
 		output = output.zfill(10)
 	return output
-
-def timeFormat(rawTime):
-	"""
-	Formats the raw time received from the satellites to the EAT time.
-	
-	Receives the raw time from the satellites and converts it to a human readable time, in the 24Hr format
-	Args:
-		rawTime:	The raw time string as received from the satellites
-	Returns:
-		formattedTime:	The human readable formatted time
-	"""
-	formattedTime = rawTime[0:rawTime.index('.')]
-	formattedTime = str(int(formattedTime[0:2]) + 3)  + ':' + formattedTime[2:4] + ':' + formattedTime[4:6]
-	return formattedTime
 
 def reader(rfid):
     color = '#f00'

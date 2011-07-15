@@ -1,8 +1,10 @@
 import threading
 import serial
 import re
+#import time
+import logging
 import math
-from time import time, sleep
+from time import time, sleep, strftime
 
 class GPSReader(threading.Thread):
 	""" @package GPS_Reader
@@ -12,27 +14,28 @@ class GPSReader(threading.Thread):
 	"""
 	
 	## The Constructor
-	def __init__(self, port, baud):
+	def __init__(self, port, logger, baud, timeZone, timeZoneName):
+		logger.info("Starting the GPS doongle...")
 		threading.Thread.__init__(self)
-		self.port     = port
-		self.baud     = baud
-		self.ports    = []
-		self.OOS      = 30
-		self.last     = time() - self.OOS
-		self.timeout  = 1.5
-		self.running  = True
-		self.conn     = None
-		self.distalgo = 'haversine'
-		self.data = {'latitude':'N/A',   'longtitude':'N/A', 'altitude':'N/A', 
-		'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>',
-		'raw':''}
-		self.gga = re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),\d,(\d+),([0-9.]+),([-0-9.]*),(M),[-0-9.]*,M,,0000\*...')
+		self.port     		= port
+		self.baud     		= baud
+		self.timeZone 		= timeZone
+		self.timeZoneName 	= timeZoneName	#The inclusion of this variable here is a mistake. but for the sake of the development time...we include it here to be accessed by the simple module later on
+		self.ports    		= []
+		self.OOS      		= 30
+		self.last     		= time() - self.OOS
+		self.timeout  		= 1.5
+		self.running  		= True
+		self.conn     		= None
+		self.distalgo 		= 'haversine'
+		self.data 			= {'latitude':'N/A',   'longtitude':'N/A', 'altitude':'N/A', 'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>', 'formattedTime':'<unknown>', 'date': '<unknown>', 'raw':''}
+		self.gga 			= re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),\d,(\d+),([0-9.]+),([-0-9.]*),(M),[-0-9.]*,M,,0000\*...')
 
 	def findGPSDongle(self):
 		"""
 		Find and starts reading from a gps dongle in /dev/
 		"""
-		self.data = {'latitude':'N/A', 'longtitude':'N/A', 'altitude':'N/A', 'satellites':'N/A', 'dilution':'N/A', 'time':'<unknown>'}
+		self.data = {'latitude':'N/A', 'longtitude':'N/A', 'altitude':'N/A', 'satellites':'N/A', 'dilution':'N/A', 'time':'<unknown>', 'formattedTime': '<unknown>', 'date': '<unknown>'}
 		if not self.ports:
 			# scan the 'files' where the gps dongle is attached. In linux basically everything is a file
 			for i in range(0,10):
@@ -40,6 +43,7 @@ class GPSReader(threading.Thread):
 		
 		while not self.conn and self.running:
 			self.status = 'initializing'
+			#print self.status
 			for port in self.ports:
 				try:
 					sleep(0.1)
@@ -58,10 +62,12 @@ class GPSReader(threading.Thread):
 		Reads a line from the GPS dongle and sets the self.data with the values read
 		"""
 		self.findGPSDongle()
+		#print self.running
 		while self.running:
+			#print self.data['formattedTime']
 			try:
 				if (self.last + self.OOS < time()):
-					raise IOError
+					raise Exception('Refreshing the GPS data')
 				elif self.data['latitude'] == 'N/A':
 					self.status = 'Out of Sync'
 				else:
@@ -77,6 +83,8 @@ class GPSReader(threading.Thread):
 					self.data['satellites'] = match.group(6)
 					self.data['dilution'] = match.group(7)
 					self.data['raw'] = raw_data[:-2]
+					self.data['formattedTime'] = self.timeFormat(self.data['time'])
+					self.data['date'] = strftime("%Y-%m-%d")
 					
 					if match.group(8):
 						self.data['altitude'] = match.group(8)
@@ -85,12 +93,29 @@ class GPSReader(threading.Thread):
 					if match.group(5) == 'W':
 						self.data['longtitude'] = -self.data['longtitude']
 						self.last = time()
-			
 			except Exception as e:
-				print "Exception: %s" % e
+				#print "Exception: %s" % e
 				self.conn = None
 				self.findGPSDongle()
 				self.status = 'disconnected'
+
+	def timeFormat(self, rawTime):
+		"""
+		Formats the raw time received from the satellites to the EAT time.
+		
+		Receives the raw time from the satellites and converts it to a human readable time, in the 24Hr format
+		Args:
+			rawTime:	The raw time string as received from the satellites
+		Returns:
+			formattedTime:	The human readable formatted time
+		"""
+		formattedTime = rawTime[0:rawTime.index('.')]
+		hour = str(int(formattedTime[0:2]) + self.timeZone)
+		if len(hour) == 1:
+			hour = '0' + hour
+			
+		formattedTime = hour + ':' + formattedTime[2:4] + ':' + formattedTime[4:6]
+		return formattedTime
 
 	def convert(self, coord):
 		degrees = int(float(coord)/100)
