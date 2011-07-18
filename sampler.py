@@ -39,7 +39,8 @@ info     = {'mode'      :'animal'                           ,
             'target'    :'dgea'                             ,
             'active_tag':None                               ,
             'msg'       :'Welcome to %s!' % settings['name'],
-            'error'     :''                                 ,
+            'error'     :''
+            ,
             'tag'       :None                               ,
             'tag_read'  :0,
             'farmer'    :''}

@@ -171,13 +171,6 @@ class simple(SimplePage):
         return output
 
 
-    def selectedSite(self, info):
-        """
-        create a select component for the households in the selected sites
-        """
-        print 'maybe i am dumb!'
-
-
     def animal_input(self):
         return """Animal tag: <input type='text' name='animal' id='animal'>"""
 
@@ -479,8 +472,9 @@ class simple(SimplePage):
                 <div class='scroller input' id='input_form'>%s</div>
             </form>
             <script type='text/javascript'>
-                DGEA.clearInformation();
                 DGEA.curAnimal = {};
+                alert('refreshing the page');
+                DGEA.clearInformation();
             </script>
         """ % self.dgeaHome()
 
