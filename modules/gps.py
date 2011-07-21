@@ -1,3 +1,23 @@
+"""
+ Copyright 2011 ILRI
+ 
+ This file is part of <ex simple sampler>.
+ 
+ <ex simple sampler> is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ <ex simple sampler> is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ 
+"""
+
 import threading
 import serial
 import re
@@ -28,14 +48,14 @@ class GPSReader(threading.Thread):
 		self.running  		= True
 		self.conn     		= None
 		self.distalgo 		= 'haversine'
-		self.data 			= {'latitude':'N/A',   'longtitude':'N/A', 'altitude':'N/A', 'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>', 'formattedTime':'<unknown>', 'date': '<unknown>', 'raw':''}
+		self.data 			= {'latitude':'N/A',   'longitude':'N/A', 'altitude':'N/A', 'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>', 'formattedTime':'<unknown>', 'date': '<unknown>', 'raw':''}
 		self.gga 			= re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),\d,(\d+),([0-9.]+),([-0-9.]*),(M),[-0-9.]*,M,,0000\*...')
 
 	def findGPSDongle(self):
 		"""
 		Find and starts reading from a gps dongle in /dev/
 		"""
-		self.data = {'latitude':'N/A', 'longtitude':'N/A', 'altitude':'N/A', 'satellites':'N/A', 'dilution':'N/A', 'time':'<unknown>', 'formattedTime': '<unknown>', 'date': '<unknown>'}
+		self.data = {'latitude':'N/A', 'longitude':'N/A', 'altitude':'N/A', 'satellites':'N/A', 'dilution':'N/A', 'time':'<unknown>', 'formattedTime': '<unknown>', 'date': '<unknown>'}
 		if not self.ports:
 			# scan the 'files' where the gps dongle is attached. In linux basically everything is a file
 			for i in range(0,10):
@@ -79,7 +99,7 @@ class GPSReader(threading.Thread):
 				if match:
 					self.data['time'] = match.group(1)      
 					self.data['latitude'] = self.convert(match.group(2))  
-					self.data['longtitude'] = self.convert(match.group(4))
+					self.data['longitude'] = self.convert(match.group(4))
 					self.data['satellites'] = match.group(6)
 					self.data['dilution'] = match.group(7)
 					self.data['raw'] = raw_data[:-2]
@@ -91,8 +111,11 @@ class GPSReader(threading.Thread):
 					if match.group(3) == 'S':
 						self.data['latitude'] = -self.data['latitude']
 					if match.group(5) == 'W':
-						self.data['longtitude'] = -self.data['longtitude']
+						self.data['longitude'] = -self.data['longitude']
 						self.last = time()
+					#print 'haversine distance: %s' % self.haversine(0.215150, -01.269168, 34.5896, 36.722118)
+					#print 'spherical_law_of_cosines distance: %s' % self.spherical_law_of_cosines(0.215150, -01.269168, 34.5896, 36.722118)
+						
 			except Exception as e:
 				#print "Exception: %s" % e
 				self.conn = None
@@ -128,15 +151,13 @@ class GPSReader(threading.Thread):
 			return float('inf')
 		if self.status == 'running':
 			if self.distalgo == 'haversine':
-				distance = self.haversine(lat, self.data['latitude'],
-				lon, self.data['longtitude'])
+				distance = self.haversine(lat, self.data['latitude'], lon, self.data['longitude'])
 			if self.distalgo == 'spherical law of cosines':
-				distance = self.spherical_law_of_cosines(\
-				lat, self.data['latitude'],
-				lon, self.data['longtitude'])
+				distance = self.spherical_law_of_cosines(lat, self.data['latitude'], lon, self.data['longitude'])
 			return distance
 
 	def haversine(self, lat1, lat2, lon1, lon2):
+		#print 'lat1:%s, lat2: %s, long1:%s, long2:%s' % (lat1, lat2, lon1, lon2)
 		R = 6371.0
 		rad = math.pi/180.0
 		dLat = (lat2*rad - lat1*rad)
@@ -148,6 +169,7 @@ class GPSReader(threading.Thread):
 		return R *c
 
 	def spherical_law_of_cosines(self, lat1, lat2, lon1, lon2):
+		#print 'lat1:%s, lat2: %s, long1:%s, long2:%s' % (lat1, lat2, lon1, lon2)
 		R = 6371.0
 		rad = math.pi/180.0
 		d = math.acos(math.sin(lat1*rad) * math.sin(lat2*rad) + \

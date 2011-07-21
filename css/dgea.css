@@ -73,9 +73,12 @@ a {
    width: 420px;
    padding: 10px;
 }
+
 .info {
-   height: 180px;
+   max-height: 180px;
+   height: auto;
 }
+
 .large {
    height: 270px;
 }
@@ -117,4 +120,37 @@ a {
 
 .delete_sample, .delete_animal{
    cursor: pointer;
+}
+
+#input_form table{
+   width: 100%;
+}
+
+#input_form .show_all{
+   margin-left: 40px;
+}
+
+#input_form .first_row{
+   padding-bottom: 4px;
+}
+
+ol {
+	font-size: 62.5%;
+	margin: 20px;
+	font-size: 1.2em;
+}
+
+#slider_slider {
+	margin: 6px 100px 10px 0px;
+	height: 12px;
+   float: right;
+}
+
+#main_box .refresh{
+   float: right;
+   position: relative;
+   top: -38px;
+   width: 30px;
+   margin-left: -20px;
+   border: 0px;
 }

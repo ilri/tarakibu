@@ -1,3 +1,23 @@
+"""
+ Copyright 2011 ILRI
+ 
+ This file is part of <ex simple sampler>.
+ 
+ <ex simple sampler> is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ <ex simple sampler> is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ 
+"""
+
 import re
 
 class SimplePage():
@@ -6,6 +26,7 @@ class SimplePage():
         self.title = settings['name']
         self.version = settings['version']
         self.port = settings['port']
+        self.radius = settings['radius']
         self.info_time = settings['info_time']
         self.db = db
         self.devices = devices
@@ -49,7 +70,7 @@ def gpsPosition(gps):
     if gps.status == 'running':
         return "<div class='gps_running'>%s, %s, %s, %s(%s)</div>" % (\
             gps_format(gps.data['latitude']), 
-            gps_format(gps.data['longtitude']), 
+            gps_format(gps.data['longitude']), 
             gps.data['altitude'],
             gps.data['formattedTime'],
             gps.timeZoneName)

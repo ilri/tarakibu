@@ -1,3 +1,22 @@
+"""
+ Copyright 2011 ILRI
+ 
+ This file is part of <ex simple sampler>.
+ 
+ <ex simple sampler> is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ <ex simple sampler> is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ 
+"""
 
 import MySQLdb
 import re
@@ -89,10 +108,10 @@ class SamplerDb():
 
     def insert_tag_read(self, tag, pos):
         self._query('INSERT INTO tag_reads                     \
-                            (rfid,     latitude,   longtitude, \
+                            (rfid,     latitude,   longitude, \
                              altitude, satellites, hdop, raw_data)  \
                      VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s");' % \
-                            (tag.upper(), pos['latitude'], pos['longtitude'],\
+                            (tag.upper(), pos['latitude'], pos['longitude'],\
                                   pos['altitude'], pos['satellites'],\
                                   pos['dilution'], pos['raw']))
 
@@ -100,11 +119,11 @@ class SamplerDb():
         tag_read = self.tag_to_id(tag)[0]
         prefix, barcode = self.split_barcode(barcode)
         self._query('INSERT INTO samples (prefix,     barcode,    tag_read, \
-                                          latitude,   longtitude, altitude, \
+                                          latitude,   longitude, altitude, \
                                           satellites, hdop,   comment, raw_data) \
                      VALUES ("%s","%s","%s","%s","%s","%s","%s","%s","%s", "%s");' % \
                             (prefix, barcode, tag_read, 
-                             pos['latitude'], pos['longtitude'], 
+                             pos['latitude'], pos['longitude'], 
                              pos['altitude'], pos['satellites'],
                              pos['dilution'], info, pos['raw']))
     
@@ -158,7 +177,7 @@ class SamplerDb():
 
     def get_places(self):
         output = []
-        data = self._query('SELECT name, latitude, longtitude, radius \
+        data = self._query('SELECT name, latitude, longitude, radius \
                                    FROM places ORDER BY name')
         if data:
             for place in data:
@@ -170,7 +189,7 @@ class SamplerDb():
             latitude = 'NULL'
         if longitude == 'N/A':
             longitude = 'NULL'
-        query = 'INSERT INTO places(name, latitude, longtitude, radius) VALUES ("%s",%s,%s,%s);' % (name, latitude, longitude, radius)
+        query = 'INSERT INTO places(name, latitude, longitude, radius) VALUES ("%s",%s,%s,%s);' % (name, latitude, longitude, radius)
         self._query(query)
 
     def replace_tag(self, tag, rfid, color, supplier, tag_type, replace):
@@ -260,7 +279,7 @@ class SamplerDb():
         Get all the households that are in the selected site
         """
         output = []
-        data = self._query('SELECT hhid, id FROM households;')
+        data = self._query('SELECT hhid, id, latitude, longitude FROM households;')
         if data:
             for household in data:
                 output.append(household)
@@ -271,26 +290,35 @@ class SamplerDb():
         Get all the cattle in the selected household
         """
         output = []
-        householdCattle = self._query("SELECT id, name FROM dgea_animals where hhId = %d ORDER BY name ASC;" % int(householdId))
+        householdCattle = self._query("SELECT id, name FROM animals where hhId = %d ORDER BY name ASC;" % int(householdId))
         for cattle in householdCattle:
             output.append(cattle)
+        return output
+
+    def getSiteHouseholds(self, siteId):
+        """
+        Get all the households in the selected site
+        """
+        output = []
+        siteHouseholds = self._query("SELECT hhid, id FROM households where siteId = %d ORDER BY hhid ASC;" % int(siteId))
+        for household in siteHouseholds:
+            output.append(household)
         return output
     
     def getSites(self):
         """
         Get all the sites
         """
-        return self._query('SELECT name FROM sites ORDER BY name ASC;');
+        return self._query('SELECT id, name FROM sites ORDER BY name ASC;');
 
     def logGpsData(self, gpsData):
         """
         Logs the gps data at this current instance and returns the id of the logged GPS data
         """
         dateTime = gpsData['date'] + ' ' + gpsData['formattedTime']
-        self._query('INSERT INTO gps_data(read_time, latitude, longtitude, altitude, satellites, hdop, raw_data)  \
+        self._query('INSERT INTO gps_data(read_time, latitude, longitude, altitude, satellites, hdop, raw_data)  \
                      VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s")' % \
-                    (dateTime, gpsData['latitude'], gpsData['longtitude'], gpsData['altitude'], gpsData['satellites'], gpsData['dilution'], gpsData['raw']))
-        print 'logged the gps data'
+                    (dateTime, gpsData['latitude'], gpsData['longitude'], gpsData['altitude'], gpsData['satellites'], gpsData['dilution'], gpsData['raw']))
         return self.lastInsertId
     
 
@@ -302,12 +330,11 @@ class SamplerDb():
         return self.lastInsertId
 
 
-    def logSampleRead(self, barcode, gpsData, action):
+    def logSampleRead(self, barcode, gpsId, action):
         """
         Logs a sample read. A sample was scanned for whichever purpose. This is for the sake of trace-ability
         """
-        dateTime = gpsData['date'] + ' ' + gpsData['formattedTime']
-        self._query("insert into sample_reads(barcode, date_time, action) values('%s', '%s', '%s')" % (barcode, dateTime, action))
+        self._query("insert into sample_reads(barcode, gps_id, action) values('%s', '%s', '%s')" % (barcode, gpsId, action))
 
 
     def get_location(self, gps):

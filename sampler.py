@@ -1,5 +1,25 @@
 #!/usr/bin/env python
 
+"""
+ Copyright 2011 ILRI
+ 
+ This file is part of <ex simple sampler>.
+ 
+ <ex simple sampler> is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ <ex simple sampler> is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ 
+"""
+
 import threading
 import sys
 import os
@@ -22,9 +42,10 @@ from www.site import *
 ## The basic settings for the simple sample
 # We are including the absolute path to where the random sampler is located so that we can be able to include the files and the other
 # resources that are need
-settings = {'name'          :'Simple Sampler'                   ,
+settings = {'name'          :'DGEA Sampler'                   ,
             'version'       :'0.8.2 BETA'                       ,
             'port'          :8080                               ,
+            'radius'        :200                                ,   #The radius in which households shall fall in
             'timeZone'      :+3                                 ,   #The time zone where the sampling is taking place. This is the number of hours before or after the GMT
             'timeZoneName'  :'EAT'                              ,   #The name of the time zone that we are currently operating in
             'db_host'       :'localhost'                        ,
@@ -72,7 +93,7 @@ devices  = {'gps' :GPSReader ('/dev/ttyUSB', logger, 4800, settings['timeZone'],
 ## The pages that will be created by the sampler
 pages = {'simple':simple(settings, db, devices, info, logger),
             'admin' :admin (settings, db, devices, info, logger),
-            'site'  :site  (settings, db, devices, info, logger)}
+            'summary'  :summary  (settings, db, devices, info, logger)}
 
 class SamplerServer(BaseHTTPRequestHandler):
     
@@ -80,7 +101,7 @@ class SamplerServer(BaseHTTPRequestHandler):
         global pages, devices, settings, info
         try:
             #sys.stderr = open('error.log','a') # tell the server to shut up
-            #print self.path
+            print self.path
             pathMatch = re.match( r'/resource(.*)', self.path, re.M|re.I)
             if pathMatch != None:
                 self.send_response(200)
@@ -90,10 +111,13 @@ class SamplerServer(BaseHTTPRequestHandler):
             path = self.path.split('/')
 
             if self.path == '/':
-                self.wfile.write(pages['simple'].site(info))
+                self.wfile.write(pages['simple'].site(info, devices['gps']))
+            elif(self.path == '/admin'):
+                self.wfile.write(pages['admin'].site(info))
+            elif(self.path == '/summary'):
+                self.wfile.write(pages['summary'].site(info))
             else:
                 pathMatch = re.match( r'/resource\?(.*)', self.path, re.M|re.I)
-                #print path
                 #print pathMatch
                 if pathMatch != None:
                     #we are requesting for a file, it can be a javascript, css or just a plain text file 
@@ -128,14 +152,19 @@ class SamplerServer(BaseHTTPRequestHandler):
             if ctype == 'application/x-www-form-urlencoded':
                 length = int(self.headers.getheader('content-length'))
                 postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
-                #print postvars
+                if(self.path != '/simple/updateGPSCoordinates'):
+                    print postvars
                 #print self.path
                 #now call the function that is meant to process this request
                 if(self.path == '/simple/selectedHousehold'):
                     print 'need to get all cows in household #%s ' % postvars['household'][0]
                     output = pages[postvars['page'][0]].selectedHousehold(postvars['household'][0], devices)
                     self.wfile.write(output)
-                if(self.path == '/simple/nextAnimal'):
+                elif(self.path == '/simple/selectedSite'):
+                    print 'need to get all the households from the site #%s ' % postvars['sites'][0]
+                    output = pages[postvars['page'][0]].selectedSite(postvars['sites'][0], devices)
+                    self.wfile.write(output)
+                elif(self.path == '/simple/nextAnimal'):
                     print 'we have finalized saving samples for one animal, now we need to go to the next animal'
                     output = pages[postvars['page'][0]].nextAnimal(postvars, devices)
                     self.wfile.write(output)
@@ -164,6 +193,18 @@ class SamplerServer(BaseHTTPRequestHandler):
                     #the user have entered a sample for an animal
                     output = pages[postvars['page'][0]].deleteAnimal(postvars['curAnimalRead'][0], devices)
                     self.wfile.write(output)
+                elif(self.path == '/simple/showAllSites'):
+                    #print postvars
+                    print 'we either to show all sites or just the households within a certain radius'
+                    #the user have entered a sample for an animal
+                    output = pages[postvars['page'][0]].showSites(postvars, devices['gps'])
+                    self.wfile.write(output)
+                elif(self.path == '/simple/refreshSampler'):
+                    print 'I really dont know what to do here, so we shall evaluate a case on case basis'
+                    output = pages[postvars['page'][0]].refreshSampler(postvars, devices['gps'])
+                    self.wfile.write(output)
+                elif(self.path == '/admin'):
+                    print 'admin page'
                     
             if ctype == 'multipart/form-data':
                 self.send_response(301)

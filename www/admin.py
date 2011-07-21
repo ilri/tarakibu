@@ -1,55 +1,89 @@
+"""
+ Copyright 2011 ILRI
+ 
+ This file is part of <ex simple sampler>.
+ 
+ <ex simple sampler> is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ <ex simple sampler> is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ 
+"""
+
 from common import *
 
 class admin(SimplePage):
 
     def site(self, info):
+        """
+        Creates the admin's home page
+        """
         return """<html>
-  <head>
-    <title>%s v. %s - Admin</title>
-    <script type='text/javascript' src='resource?js/jquery_1_6_1.js'></script>
-    <script type='text/javascript' src='resource?js/dgea.js'></script>
-    <link rel='stylesheet' type='text/css' href='resource?css/dgea.css'>
-  </head>
-  <body onLoad="updateSite(); ajaxFunction('http://localhost:%s/','admin/sample_types')">
-    <div class='site'>
-      <div class='left'>
-        <div class='box top'>
-          <h1>Administration</h1>
-        </div>
-        <div class='box main'>
-          <h3><a href=javascript:ajaxFunction('http://localhost:%s','/admin/sample_types')>Sample Types</a> | 
-          <hr />
-          <form action='http://localhost:%s/' method='post' enctype='multipart/form-data' name='sampling'>
-            <input type='hidden' name='page' value='admin'>
-            <div class='scroller input' id='input_form'></div>
-            <hr />
-            <div class='submitbutton'>
-              <input type='submit' value='Submit'>
+            <head>
+              <title>%s v. %s</title>
+              <script type='text/javascript' src='resource?js/jquery_1_6_1.js'></script>
+              <script type='text/javascript' src='resource?js/dgea.js'></script>
+              <script type='text/javascript' src='resource?js/jquery.json.js'></script>
+              <script type='text/javascript' src='resource?js/jquery.form.js'></script>
+              <link rel='stylesheet' type='text/css' href='resource?css/dgea.css'>
+              <script type='text/javascript'>
+                  //set the port that will be used on the js side
+                  DGEA.port = %s;
+                  //call the updateSite function once the page is fully loaded
+                  $(document).ready(function() {
+                      DGEA.updateGPSCoordinates();            //start the process of getting streaming GPS coordinates
+                  });
+              </script>
+            </head>
+            <body>
+              <div class='site'>
+                  <div class='left'>
+                      <div class='box top'>
+                          <h1><a href='http://localhost:%s/admin'>%s</a></h1>
+                      </div>
+                      <div class='box main' id='main_box'>
+                        <h2>Admin Page</h2>
+                        <hr />
+                        <form method='post' enctype='multipart/form-data' name='sampling'>
+                          <input type='hidden' name='page' value='simple'>
+                          <div class='scroller input' id='input_form'>I dunno what to include in this page...so I am waiting for ideas</div>
+                        </form>
+                      </div>
+                  </div>
+                  <div class='right'>
+                      <div class='box top'>
+                          <table>
+                              <tr><td>GPS:</td><td id='gps_position'>&nbsp;</td></tr>
+                          </table>
+                      </div>
+                  <div id='main_info' class='box main'>
+                      <h2>Extra Information</h2>
+                      <hr />
+                      <div class='scroller info' id='info'></div>
+                      <div class='scroller general' id='general'></div>
+                      <div class='scroller error' id='error'></div>
+                  </div>
+              </div>
+              <div class='footer'>
+                  <a href='/'>< Sampling Page</a> * %s v. %s. &copy; AVID Team, AVID Project, ILRI, 2010 * <a href='/summary'>Sampling Summary >></a>
+              </div>
             </div>
-          </form>
-        </div>
-      </div>
-      <div class='right'>
-        <div class='box top'>
-          <table>
-            <tr><td>GPS:</td><td><div id='position'></div></td></tr>
-            <tr><td>RFID:</td><td><div id='reader'></div></td></tr>
-          </table>
-        </div>
-        <div class='box main'>
-          <h2>Information</h2>
-          <hr />
-          <div class='scroller info large' id='info'></div>
-        </div>
-      </div>
-      <div class='footer'>
-        <a href='/site'><< Site Information</a> * %s v. %s. &copy; Martin Norling, AVID Project, ILRI, 2010 * <a href='/'>Sampling Page >></a>
-      </div>
-    </div>
-  </body>
-</html>
-""" % (self.title, self.version, self.port, self.port, self.port, self.title, self.version)
-        
+              <script type='text/javascript'>
+                  $('[name=submit]').bind('click', {module: 'simple/dgea_form'}, DGEA.submitForm);
+              </script>
+            </body>
+          </html>
+          """ % (self.title, self.version, self.port, self.port, self.title, self.title, self.version)
+
+
     def sample_types(self, info):
         info  = '<table>'
         info += '<tr><th>Prefix</td><th>Sample Type</td></tr>'
@@ -65,7 +99,7 @@ class admin(SimplePage):
     
     def places(self, info):
         info  = '<table>'
-        info += '<tr><th>Name</td><th>Latitude</td><th>Longtitude</td><th>Radius</td></tr>'
+        info += '<tr><th>Name</td><th>Latitude</td><th>longitude</td><th>Radius</td></tr>'
         for p in self.db.get_places():
             info += '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % p
         info += '</table>'
@@ -73,12 +107,12 @@ class admin(SimplePage):
         lon = ''
         if self.devices['gps'].status == 'running':
             lat = gps_format(self.devices['gps'].data['latitude'])
-            lon = gps_format(self.devices['gps'].data['longtitude'])
+            lon = gps_format(self.devices['gps'].data['longitude'])
         form  = 'Add Place:'
         form += '<table>'
         form += '<tr><th>Name</td><td><input type=\'text\' name=\'name\'></td><td></td></tr>'
         form += '<tr><th>Latitude</td><td><input type=\'text\' name=\'latitude\' value=\'%s\'></td><td></td></tr>' % lat
-        form += '<tr><th>Longtitude</td><td><input type=\'text\' name=\'longtitude\' value=\'%s\'></td><td></td></tr>' % lon
+        form += '<tr><th>longitude</td><td><input type=\'text\' name=\'longitude\' value=\'%s\'></td><td></td></tr>' % lon
         form += '<tr><th>Radius</td><td><input type=\'text\' name=\'radius\' value=\'1\'></td><td>km</td></tr>'
         form += '</table>'
         return ajax('info', info) + ajax('input_form', form)
@@ -128,7 +162,7 @@ class admin(SimplePage):
             self.db.insert_prefix(form['prefix'][0], form['description'][0])
         elif 'radius' in form:
             self.db.insert_place(form['name'][0], form['latitude'][0], \
-                                 form['longtitude'][0], form['radius'][0])
+                                 form['longitude'][0], form['radius'][0])
         elif 'rfid' in form:
             self.db.replace_tag(form['tag'][0], form['rfid'][0], \
                     form['color'][0], form['supplier'][0], form['tag_type'][0],\

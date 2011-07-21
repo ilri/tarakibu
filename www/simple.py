@@ -1,6 +1,26 @@
+"""
+ Copyright 2011 ILRI
+ 
+ This file is part of <ex simple sampler>.
+ 
+ <ex simple sampler> is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ <ex simple sampler> is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ 
+"""
+
 import json
 from common import *
-from time import time
+from time import time, sleep
 
 errors = {'label':'Could not verify tag label. Verify that this animal is part of the sampling process and try again',
           'unknown_tag':'The tag you have input is not featured in the animal database. This animal is not part of the sampling program.',
@@ -23,39 +43,7 @@ class simple(SimplePage):
         return gpsPosition(gps)
 
 
-    def update(self, info):
-        if info['active_tag']:
-            if self.info_time + info['tag_read'] > time():
-                output += ajax('info', self.db.sample_info(info['tag'])) 
-            else:
-                output += ajax('info',self.db.sample_info(info['active_tag']))
-        else:
-            output += ajax('info', info['msg'])
-        output += ajax('error', info['error'])
-        return output
-
-
-    def new_animal(self, info):
-        info['mode']       = 'animal'
-        info['active_tag'] = None
-        info['error']      = ''
-        return self.input_form(info)
-
-
-    def input_form(self, info):
-        output = ''
-        print info
-        if info['mode'] == 'animal':
-            if info['target'] == 'dgea':
-                return self.dgeaHome()
-
-
-    def dgea_form(self, info):
-        info['target'] = 'random'
-        return self.input_form(info)
-
-
-    def site(self, info):
+    def site(self, info, gps):
         """
         Creates the initial page that will be displayed on launching dgea sampler
         """
@@ -80,11 +68,10 @@ class simple(SimplePage):
               <div class='site'>
                   <div class='left'>
                       <div class='box top'>
-                          <h1>%s</h1>
+                          <h1><a href='http://localhost:%s/'>%s</a></h1>
                       </div>
                       <div class='box main' id='main_box'>
-                        <h2><a href='javascript:;'>DGEA Sampling</a></h2>
-                        <hr />
+                        <div><h2>DGEA Sampling</h2><a href='javascript:DGEA.refreshPage()'><img class='refresh' src='resource?images/refresh.png' alt='Refresh' /></a><hr /></div>
                         <form method='post' enctype='multipart/form-data' name='sampling'>
                           <input type='hidden' name='page' value='simple'>
                           <div class='scroller input' id='input_form'>%s</div>
@@ -106,162 +93,148 @@ class simple(SimplePage):
                   </div>
               </div>
               <div class='footer'>
-                  <a href='/admin'>< Administration page</a> * %s v. %s. &copy; Martin Norling, AVID Project, ILRI, 2010 * <a href='/site'>Site information >></a>
+                  <a href='/admin'>< Administration page</a> * %s v. %s. &copy; AVID Team, AVID Project, ILRI, 2010 * <a href='/summary'>Sampling Summary >></a>
               </div>
             </div>
               <script type='text/javascript'>
-                  $('#dgea_sampling').bind('click', DGEA.ajaxFunction);
                   $('[name=submit]').bind('click', {module: 'simple/dgea_form'}, DGEA.submitForm);
               </script>
             </body>
           </html>
-          """ % (self.title, self.version, self.port, self.title, self.dgeaHome(), self.title, self.version)
+          """ % (self.title, self.version, self.port, self.port, self.title, self.dgeaHome(gps), self.title, self.version)
 
 
-    def dgeaHome(self):
+    def dgeaHome(self, gps, showAllSites = 0, curAnimalRead = 0):
         """
         Creates the home page of the DGEA sampler
+        
+        @todo add a slider that will change the radius of the households that are being displayed on the fly
         """
-        return """
+        checked = 'checked' if (showAllSites == 1) else ''
+
+        curSiteId = 0
+        curHouseholdId = 0
+        householdCattle = "<tr><td>Cattle ID:</td><td id='householdCattle'><select><option value='0'>Select One</option></select></td></tr>"    #the combo for the cattle when we have none
+        if(curAnimalRead != 0):
+            #we are just from sampling one animal from some site/household....for continuity sake, re-select the current site or household
+            self.db.curQuery = "SELECT c.id as hhId, c.siteId FROM `animal_reads` as a inner join animals as b on a.animalid=b.id inner join households as c on b.hhId=c.id where a.id=%s" % curAnimalRead
+            try:
+                res = self.db.dictQuery()
+                curSiteId = res[0]['siteId']
+                curHouseholdId = res[0]['hhId']
+                #since we have the household, get all the animals from this household
+                householdCattle = "<tr><td>Cattle ID:</td><td id='householdCattle'>%s</td></tr>" % self.householdCattle(curHouseholdId, gps)
+            except:
+                print "Error while fetching the site id and household id of the current animal read" + self.db.curQuery
+                return 'There was an error while fetching the site id and household id of the current animal read from the database. Please try again. If the problem persists, please restart the simple sampler.'
+            print 'curSiteId: %s, curHouseholdId: %s ' % (curSiteId, curHouseholdId)
+            
+        content = """
             <table>
-            <tr><th colspan=2>Select the cow being sampled</td></tr>
-            <tr><td>Sites:</td><td><select name='sites'>%s</select></td></tr>
-            <tr><td>Household ID:</td><td><select name='household' onChange='javascript:DGEA.fetchHouseholdCattle();'><option value='0'>Select a Household</option>%s</select></td></tr>
-            <tr><td>Cattle ID:</td><td id='householdCattle'><select><option value='0'>Select One</option></select></td></tr>
+            <tr class='first_row'><td colspan='2'>Select the cow being sampled<span class='show_all'>Show all sites <input type='checkbox' name='show_all' %s /></span></td></tr>
+            """ % checked
+            
+        if(showAllSites == 1):
+            content += """
+                <tr><td>Sites:</td><td><select name='sites'>%s</select></td></tr>
+                """ % self.allSites(curSiteId)
+
+            if(curAnimalRead != 0):
+                #we have just sampled some animal, so re-select the previous household
+                content += """
+                    <tr><td>Household ID:</td><td id='siteHouseholds'><select name='household'><option value='0'>Select a Household</option>%s</select></td></tr>
+                    """ % self.allHouseholds(curHouseholdId)
+            else:
+                #we have no household....we starting from a clean slate
+                content += "<tr><td>Household ID:</td><td id='siteHouseholds'><select name='household'><option value='0'>Select a Household</option></select></td></tr>"
+        else:
+            content += """
+                <tr><td>Household ID:</td><td id='siteHouseholds'><select name='household'><option value='0'>Select a Household</option>%s</select></td></tr>
+                <script type='text/javascript'>
+                    $('.show_all').html("All sites <input type='checkbox' name='show_all' %s />");
+                </script>
+                """ % (self.householdsWithinRadius(gps, curHouseholdId), checked)
+            
+        content += """
+            %s
             </table>
             <script type='text/javascript'>
-                $('[name=household]').bind('change', DGEA.fetchHouseholdCattle);    //seems this javascript scripts are not being implemented...quite sad
+                $('[name=household]').bind('change', DGEA.fetchHouseholdCattle);
+                $('[name=sites]').bind('change', DGEA.fetchSiteHouseholds);
+                $('[name=show_all]').bind('change', {updateMe: 'input_form', module: 'simple/showAllSites'}, DGEA.submitForm);
             </script>
-            """ % (self.allSites(), self.allHouseholds())
+            """ % householdCattle
+        return content
 
 
-    def get_animal_id(self, location, species = 'sheep', wrap = True):
-        if wrap:
-            return ajax_value('animal_id', self.db.get_next_animal_id(location, species))
-        return self.db.get_next_animal_id(location, species)
-
-
-    def cattleInSite(self):
-        """
-        Create a select component for the cattle
-        """
-        output = ''
-        for animal in self.db.getCattle():
-            output += "<option value='%s'>%s</option>" % (animal[0], animal[0])
-        return output
-
-
-    def allHouseholds(self):
+    def allHouseholds(self, curHouseholdId = 0):
         """
         Create a select component for the household
         """
         output = ''
         for household in self.db.getHouseholds():
-            output += '<option value=\'%s\'>%s</option>' % (household[1], household[0])
+            output += '<option value=\'%s\'' % household[1]
+            output += ' selected' if (household[1] == curHouseholdId) else ''
+            output += '>%s</option>' % household[0]
         return output
 
 
-    def allSites(self):
+    def householdsWithinRadius(self, gps, curHouseholdId = 0):
+        """
+        Selects all the households that fall within a given radius from the current location
+        """
+        while(gps.status != 'running'):
+            print 'Waiting to get a gps fix before proceeding!'
+            sleep(0.5)
+        output = ''
+        for household in self.db.getHouseholds():
+            #print gps.data['latitude']
+            distance = gps.haversine(gps.data['latitude'], float(household[2]), gps.data['longitude'], float(household[3]))
+            if(distance < self.radius):
+                output += '<option value=\'%s\'' % household[1]
+                output += ' selected' if (household[1] == curHouseholdId) else ''
+                output += '>%s</option>' % household[0]
+        return output
+
+
+    def allSites(self, curSiteId = 0):
         """
         Create a select component for the sites
         """
         output = "<option value='0'>Select One"
         for site in self.db.getSites():
-            output += '<option value=\'%s\'>%s</option>' % (site[0], site[0])
+            output += '<option value=\'%s\'' % site[0]
+            output += ' selected' if (site[0] == curSiteId) else ''
+            output += '>%s</option>' % site[1]
         return output
-
-
-    def animal_input(self):
-        return """Animal tag: <input type='text' name='animal' id='animal'>"""
-
-
-    def parse_form(self, form, info, devices):
-        print 'him!'
-        if 'household' in form:
-            """
-            A household has been selected, get all the animals in this household
-            """
-            if devices['gps'].status == 'running':
-                self.selectedHousehold(form, info, devices)
-            else:
-                print errors['invalid_gps']
-                
-        if 'household' in form or 'species' in form:
-            if devices['gps'].status == 'running':
-                try:
-                    if 'species' in form:
-                        self.input_random(form, info, devices)
-                    else:
-                        self.input_animal(form, info, devices)
-                except:
-                    info['error'] = errors['unknown_tag']
-            else:
-                info['error'] = errors['animal_no_gps']
-        elif 'village' in form:
-            self.input_location(form, info, devices)
-        else:
-            self.input_sample(form, info, devices)
-
-
-    def input_animal(self, form, info, devices):
-        if self.db.verify_tag(form['animal'][0]):
-            self.db.insert_tag_read(form['animal'][0], devices['gps'].data)
-            info['mode'] = 'sample'
-            info['msg'] = 'Input samples using the barcode reader or keyboard.'
-            info['active_tag'] = form['animal'][0]
-            info['error'] = ''
-        else:
-            raise 
-
-
-    def input_sample(self, form, info, devices):
-        if devices['gps'].status == 'running':
-            if self.db.verify_sample(form['sample'][0]):
-                self.db.insert_sample(form['sample'][0], info['active_tag'], devices['gps'].data, form['comment'][0])
-                previous = '%s' % self.db.get_samples(info['active_tag'])
-                info['error'] = ''
-            else:
-                info['error'] = errors['invalid_barcode']
-        else:
-            info['error'] = errors['sample_no_gps']
-
-
-    def input_random(self, form, info, devices):
-        self.db.insert_tag_read(form['animal_id'][0], devices['gps'].data)
-        if self.db.input_random_animal(form):
-            info['mode'] = 'sample'
-            info['msg'] = 'Input samples using the barcode reader or keyboard.'
-            info['active_tag'] = form['animal_id'][0]
-            info['error'] = ''
-        else:
-            raise Exception('Could not insert animal into database')
-
-
-    def input_location(self, form, info, devices):
-        village_info = self.db.get_village_info(form['village'][0]);
-        if not village_info:
-            info['error'] = 'Village %s not found in the database!' % form['village'][0]
-        else:
-            info['error'] = ''
-            info['farmer'] = form['farmer'][0]
-            self.db.insert_place(form['village'][0], devices['gps'].data['latitude'],
-                                 devices['gps'].data['longtitude'], 0.5)
 
 
     def selectedHousehold(self, householdId, devices):
         print 'we here'
         if devices['gps'].status == 'running':
-            return self.householdCattle(householdId, devices)
+            return self.householdCattle(householdId, devices['gps'])
         else:
             print errors['invalid_gps']
-            return "<span class='invalid_gps'>%s</span>" % errors['invalid_gps']
+            return '-1%s' % errors['invalid_gps']
 
 
-    def householdCattle(self, householdId, devices):
+    def selectedSite(self, siteId, devices):
+        print 'we here...want to get the households in a site'
+        if devices['gps'].status == 'running':
+            return self.siteHouseholds(siteId, devices)
+        else:
+            print errors['invalid_gps']
+            return '-1%s' % errors['invalid_gps']
+
+
+    def householdCattle(self, householdId, gps):
         """
         Do the necessary checks for this household and then select all the cattle from this household
         """
         #check that the current location of this household falls within the radius of where we expect it to be
+        if gps.status != 'running':
+            print errors['invalid_gps']
+            return '-1%s' % errors['invalid_gps']
         
         #seems all is ok, get all the animals associated with this household
         cattleInHousehold = self.db.getHouseholdCattle(householdId)
@@ -277,7 +250,32 @@ class simple(SimplePage):
                         $('[name=cow2sample]').bind('change', {module: 'simple/sampleCow', field: 'main_box'}, DGEA.postForm);
                     </script>
                 """
+        return output
+
+
+    def siteHouseholds(self, siteId, devices):
+        """
+        Do the necessary checks for this site and then select all the households from this site
+        """
+        #check that the current location of this household falls within the radius of where we expect it to be
+        if devices['gps'].status != 'running':
+            print errors['invalid_gps']
+            return '-1%s' % errors['invalid_gps']
         
+        #seems all is ok, get all the animals associated with this household
+        householdsInSite = self.db.getSiteHouseholds(siteId)
+        print 'going on'
+        #logger.info("Requested for cattle in household no: %s" % householdId)
+        #now lets create the dropdown for the animals
+        output = "<select name='household'><option value='0'>Select a Household</option>"
+        for site in householdsInSite:
+            output += "<option value='%s'>%s</option>" % (site[1], site[0])
+        output += """
+                    </select>
+                    <script type='text/javascript'>
+                        $('[name=household]').bind('change', DGEA.fetchHouseholdCattle);
+                    </script>
+                """
         return output
 
 
@@ -289,17 +287,19 @@ class simple(SimplePage):
         """
         print 'sampling a cow'
         if devices['gps'].status != 'running':
-            return 'Invalid GPS data, cannot continue!'
+            return '-1%s' % errors['invalid_gps']
         #log the gps data that we are going to link to this animal read
         gpsId = self.db.logGpsData(devices['gps'].data)
+        
+        #pass the variable of whether we showing all or its just a specific site
+        
         #add the animal read instance to the database
         try:
             curAnimalRead = self.db.logAnimalRead(gpsId, postvars['cow2sample'][0], 'adding')
         except:
             print 'Serious error while adding the animal read to the database.'
             return """
-                <h2><a href='javascript:;'>DGEA Sampling</a></h2>
-                <hr />
+                <div><h2>DGEA Sampling</h2><a href='javascript:DGEA.refreshPage()'><img class='refresh' src='resource?images/refresh.png' alt='Refresh' /></a><hr /></div>
                 <form method='post' enctype='multipart/form-data' name='sampling'>
                     <input type='hidden' name='page' value='simple'>
                     <div class='scroller input' id='input_form'>%s</div>
@@ -308,30 +308,32 @@ class simple(SimplePage):
                     $('#error').html('There was an error while adding data to the database. Please try again and if the problem persists, please restart simple sampler.');
                     setTimeout('DGEA.clearInformation()', 5000);
                 </script>
-            """ % self.dgeaHome()
+            """ % self.dgeaHome(devices['gps'])
         
         #now get the details of the animal that we are sampling
-        query = 'select a.name as animalName, b.hhid, c.name as siteName from dgea_animals as a inner join households as b on a.hhId = b.id inner join sites as c on b.siteId = c.id where a.id=%s' % postvars['cow2sample'][0]
+        query = 'select a.name as animalName, b.hhid, c.name as siteName from animals as a inner join households as b on a.hhId = b.id inner join sites as c on b.siteId = c.id where a.id=%s' % postvars['cow2sample'][0]
         res = self.db._query(query)
         res = res[0]
         curAnimal = res[2] + ', ' + res[1] + ', ' + res[0]
-        return self.samplingPage(curAnimal, curAnimalRead, postvars['cow2sample'][0])
+        return self.samplingPage(curAnimal, curAnimalRead, postvars)
 
 
-    def samplingPage(self, curAnimal, curAnimalRead, curAnimalId):
+    def samplingPage(self, curAnimal, curAnimalRead, postvars):
         """
         Creates the page to allow the user to start scanning the samples
         """
         print 'current animal - %s' % curAnimal
         print 'current animal read - %s' % curAnimalRead
         #get all the samples associated with this animal
-        allSamples = self.animalSamples(curAnimalId)
+        allSamples = self.animalSamples(postvars['cow2sample'][0])
         if isinstance(allSamples, str):
             return '-1%s' % allSamples
         print allSamples
+        showall = 1 if ('show_all' in postvars) else 0
+        print showall
+        
         return """
-            <h2><a href='javascript:;'>DGEA Sampling</a></h2>
-            <hr />
+            <div><h2>DGEA Sampling</h2><a href='javascript:DGEA.refreshPage()'><img class='refresh' src='resource?images/refresh.png' alt='Refresh' /></a><hr /></div>
             <form method='post' enctype='multipart/form-data' name='sampling'>
                 <input type='hidden' name='page' value='simple'>
                 Current Animal: <b>%s</b>&nbsp;<image src='resource?images/delete.png' alt='close' class='delete_animal %s' />
@@ -341,6 +343,7 @@ class simple(SimplePage):
                 <tr> <td>Information:</td> <td><input type='text' name='comments' id='comments'></td> </tr>
                 <input type='hidden' name='curAnimalRead' value='%s' />
                 <input type='hidden' name='curAnimal' value='%s' />
+                <input type='hidden' name='showall' value='%s' />
                 </table>
                 <hr />
                 <a href='javascript:;' id='next_animal'>Next Animal</a>
@@ -359,7 +362,7 @@ class simple(SimplePage):
                     $('.delete_animal').bind('click', DGEA.deleteAnimal);
                 </script>
             </form>
-            """ %  (curAnimal, curAnimal, curAnimalRead, curAnimal, json.dumps({'animal': curAnimal, 'samples': allSamples}))
+            """ %  (curAnimal, curAnimal, curAnimalRead, curAnimal, showall, json.dumps({'animal': curAnimal, 'samples': allSamples}))
 
 
     def saveSample(self, postvars, devices, barcodedSamples):
@@ -369,6 +372,9 @@ class simple(SimplePage):
         @todo sanitize the comments
         @todo change the status of a sample read to re-sampled if the user specified a sample which is already in the database
         """
+        if devices['gps'].status != 'running':
+            return json.dumps({'error': "The current GPS coordinates are not valid. Please wait until you get a valid GPS coordinate and then try again."});
+            
         errorMessage = {'error': 'There was an error while adding the sample to the database. Please try again. If the problem persists, please restart the simple sampler.'}
         barcode = postvars['barcode'][0].upper()
         curAnimal = postvars['curAnimal'][0]
@@ -376,20 +382,18 @@ class simple(SimplePage):
         res = self.isSampleSaved(barcode)
         print res
         if isinstance(res, str):    #an error occured while checking whether the sample has been saved before
-            return res
+            return json.dumps({'error': res})
         elif isinstance(res, dict):    #we have an array, meaning that the sample has bee saved before
             print 'saved already'
             return json.dumps(res)
-            
-        if devices['gps'].status != 'running':
-            return json.dumps({'error': "The current GPS coordinates are not valid. Please wait until you get a valid GPS coordinate and then try again."});
-        
+
         #lets save this sample, but first get the animalId
         try:
             query = 'select animalId from animal_reads where id=%s' % postvars['curAnimalRead'][0]
             res = self.db._query(query)
         except:
-            return errorMessage
+            print 'Error while fetching animal id from the database: %s' % query
+            return json.dumps(errorMessage)
         
         curAnimalId = res[0][0]
         #Lets do the necessary data checks
@@ -400,28 +404,33 @@ class simple(SimplePage):
             if barcodeRe.match(barcode):
                 return 'Invalid sample barcode!'
         #log this sample read
+        #log the gps data that we are going to link to this animal read
+        if devices['gps'].status != 'running':
+            return json.dumps({'error': "The current GPS coordinates are not valid. Please wait until you get a valid GPS coordinate and then try again."});
+        gpsId = self.db.logGpsData(devices['gps'].data)
         try:
-            self.db.logSampleRead(barcode, self.gps.data, 'added')
+            self.db.logSampleRead(barcode, gpsId, 'added')
         except:
-            return errorMessage
+            print 'Error while adding a sample read.'
+            return json.dumps(errorMessage)
 
         #we are now all set...so lets proceed to the db stuff
         try:
-            query = "insert into samples(barcode, animalReadId, animalId, comment) values('%s', '%s', '%s', '%s')" % (barcode, postvars['curAnimalRead'][0], curAnimalId, postvars['comments'][0],)
+            query = "insert into samples(barcode, gps_id, animalReadId, animalId, comment) values('%s', %s, '%s', '%s', '%s')" % (barcode, gpsId, postvars['curAnimalRead'][0], curAnimalId, postvars['comments'][0],)
             self.db._query(query)
         except:
-            return errorMessage
+            print 'Error while logging in the sample: %s' % query
+            return json.dumps(errorMessage)
         #we are ok, return all the samples from this animal
-        self.db.curQuery = 'select b.* from animal_reads as a inner join samples as b on a.animalId=b.animalId where a.id=%s' % postvars['curAnimalRead'][0]
+        self.db.curQuery = 'select b.*, c.read_time from animal_reads as a inner join samples as b on a.animalId=b.animalId inner join gps_data as c on b.gps_id=c.id where a.id=%s' % postvars['curAnimalRead'][0]
         try:
             samples = self.db.dictQuery()
             allSamples = []
             for sample in samples:
-                allSamples.append({'barcode': sample['barcode'], 'sampling_date_time': str(sample['sampling_date_time'])})
-            print allSamples
+                allSamples.append({'barcode': sample['barcode'], 'sampling_date_time': str(sample['read_time'])})
         except:
-            print 'There was an error while fetching samples'
-            return errorMessage
+            print 'There was an error while fetching samples: %s' % self.db.curQuery
+            return json.dumps(errorMessage)
         #we are now home and dry...return the results  postvars['curAnimalRead'][0]
         return json.dumps({'animal': curAnimal, 'samples': allSamples})
 
@@ -462,21 +471,19 @@ class simple(SimplePage):
         """
         print 'here we are'
         if devices['gps'].status != 'running':
-            return errors['invalid_gps']
+            return '-1%s' % errors['invalid_gps']
         #All the samples have been already saved...jst show the home page again
         return """
-            <h2><a href='javascript:;'>DGEA Sampling</a></h2>
-            <hr />
+            <div><h2>DGEA Sampling</h2><a href='javascript:DGEA.refreshPage()'><img class='refresh' src='resource?images/refresh.png' alt='Refresh' /></a><hr /></div>
             <form method='post' enctype='multipart/form-data' name='sampling'>
                 <input type='hidden' name='page' value='simple'>
                 <div class='scroller input' id='input_form'>%s</div>
             </form>
             <script type='text/javascript'>
                 DGEA.curAnimal = {};
-                alert('refreshing the page');
                 DGEA.clearInformation();
             </script>
-        """ % self.dgeaHome()
+        """ % self.dgeaHome(devices['gps'], int(postvars['showall'][0]), int(postvars['curAnimalRead'][0]))
 
 
     def animalSamples(self, animalId):
@@ -484,12 +491,12 @@ class simple(SimplePage):
         Gets all the samples that have been saved from this animal
         """
         errorMessage = 'There was an error while fetching animal samples data from the database. Please try again. If the problem persists, please restart the simple sampler.'
-        self.db.curQuery = "select sampling_date_time, barcode from samples where animalId = %s" % animalId
+        self.db.curQuery = "select b.read_time, a.barcode from samples as a inner join gps_data as b on a.gps_id=b.id where a.animalId = %s" % animalId
         try:
             samples = self.db.dictQuery()
             allSamples = []
             for sample in samples:
-                allSamples.append({'barcode': sample['barcode'], 'sampling_date_time': str(sample['sampling_date_time'])})
+                allSamples.append({'barcode': sample['barcode'], 'sampling_date_time': str(sample['read_time'])})
         except:
             print "Error while fetching samples associated with a certain animal. " + self.db.curQuery
             return errorMessage
@@ -501,13 +508,13 @@ class simple(SimplePage):
         """
         Get the full name of this animal. By the full name we mean the name of the animal that we are going to display
         """
-        self.db.curQuery = 'select a.name as animalName, b.hhid, c.name as siteName from dgea_animals as a inner join households as b on a.hhId = b.id inner join sites as c on b.siteId = c.id where a.id=%s' % animalId
+        self.db.curQuery = 'select a.name as animalName, b.hhid, c.name as siteName from animals as a inner join households as b on a.hhId = b.id inner join sites as c on b.siteId = c.id where a.id=%s' % animalId
         try:
             animal = self.db.dictQuery()
             animalDetails = animal[0]['siteName'] + ', ' + animal[0]['hhid'] + ', ' + animal[0]['animalName']
         except:
             print "Error while fetching the animal full name" + self.db.curQuery
-            return errorMessage
+            return 'There was an error while fetching the animal full name from the database. Please try again. If the problem persists, please restart the simple sampler.'
         return {'animalName': animalDetails}
 
 
@@ -526,9 +533,13 @@ class simple(SimplePage):
             mssg = "Error, Trying to delete '%s'. We actually do not have this sample." % sample
             return json.dumps({'error': mssg})
         #we actually have the sample, so lets delete it
+        
+        
+        #log the gps data that we are going to link to this animal read
+        gpsId = self.db.logGpsData(devices['gps'].data)
         #log this sample delete
         try:
-            self.db.logSampleRead(sample, self.gps.data, 'deleted')
+            self.db.logSampleRead(sample, gpsId, 'deleted')
         except:
             return json.dumps(errorMessage)
         #the actual delete
@@ -538,7 +549,6 @@ class simple(SimplePage):
         
         #now get the other samples for this animal
         allSamples = self.animalSamples(res['animalId'])
-        print allSamples
         if isinstance(allSamples, str):
             return json.dumps({'error': allSamples})
             
@@ -582,11 +592,25 @@ class simple(SimplePage):
         
         #all is alright, now lets return the home page
         return """
-            <h2><a href='javascript:;'>DGEA Sampling</a></h2>
-            <hr />
+            <div><h2>DGEA Sampling</h2><a href='javascript:DGEA.refreshPage()'><img class='refresh' src='resource?images/refresh.png' alt='Refresh' /></a><hr /></div>
             <form method='post' enctype='multipart/form-data' name='sampling'>
                 <input type='hidden' name='page' value='simple'>
                 <div class='scroller input' id='input_form'>%s</div>
             </form>
-            """ % self.dgeaHome()
-    
+            """ % self.dgeaHome(devices['gps'])
+
+
+    def showSites(self, postvars, gps):
+        """
+        Depending on the passed variables, either show all the sites or only show households within a certain radius
+        """
+        if('show_all' in postvars):     #we want all sites
+            return self.dgeaHome(gps, 1)
+        else:
+            return self.dgeaHome(gps, 0)
+
+
+    def refreshSampler(postvars, gps):
+        """
+        Being tested and resolved on a case on case basis
+        """

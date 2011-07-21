@@ -1,23 +1,69 @@
 /**
-	The main file that will hold all javascript functions for the DGEA sampler
+ Copyright 2011 ILRI
+ 
+ This file is part of <ex simple sampler>.
+ 
+ <ex simple sampler> is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ <ex simple sampler> is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ 
 */
 
+/**
+	The main file that will hold all javascript functions for the DGEA sampler
+*/
 var DGEA = {
    
    /**
     * The port that will be used by the system
     */
    port: undefined, 
+
+   getVariable: function(name,queryStr){
+   //it gets a string as the variables passed in the location and returns a variable by the specific name
+      queryStr=unescape(queryStr)		//make it a proper string
+      queryStr=queryStr.replace("+"," ").replace("+"," ")	//remove the +'s
+       if (queryStr.length != 0) {
+         splitArray = queryStr.split("&")	//convert it to an array
+         for (i=0; i<splitArray.length; i++) {
+            var splits=splitArray[i].split("=");
+            if(splits[0]==name) return splits[1];
+         }
+       }
+      return undefined;
+   },
+
    /**
     * Fetch all the cattle in the selected household
     */
    fetchHouseholdCattle: function(){
       if($('[name=household]').val() == 0){
-         alert('Please select a household of which to fetch the cattle');
+         alert('Please select a household of which to fetch the cattle.');
          return;
       }
       //create a request for this data
        DGEA.submitForm('simple/selectedHousehold', 'householdCattle');
+   },
+   
+   /**
+    * Fetch all the households in the selected site
+    */
+   fetchSiteHouseholds: function(){
+      if($('[name=sites]').val() == 0){
+         alert('Please select a site from which to fetch all the households.');
+         return;
+      }
+      //create a request for this data
+       DGEA.submitForm('simple/selectedSite', 'siteHouseholds');
    },
    
 	displayCattleInHomestead: function(){
@@ -84,6 +130,7 @@ var DGEA = {
 	  if(result.substr(0,2)=='-1'){
 		 var message=result.substring(2,result.length);
 		 DGEA.ajaxError(message);
+        setTimeout('DGEA.ajaxError()', 5000);   //clear the error message after a while
 		 return;
 	  }
 	  
@@ -95,9 +142,17 @@ var DGEA = {
     * Submits the data of a form to the server. Assumes that there is only one form in a a page at a time, and if there are multiple submits only the first one
     */
    submitForm: function(vars, updateMe){
-      var params = $('form').formSerialize();
-      var module = (vars.data != undefined) ? vars.data.module : vars;
-      DGEA.field2Update = (updateMe == undefined) ? 'main_box' : updateMe;
+      var params = $('form').formSerialize(), module;
+      if(vars.data != undefined){
+         module = vars.data.module;
+         DGEA.field2Update = (vars.data.updateMe == undefined) ? 'main_box' : vars.data.updateMe;
+      }
+      else{
+         module = vars;
+         if(updateMe != undefined) DGEA.field2Update = updateMe;
+         else DGEA.field2Update = 'main_box';
+      }
+      
       $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/'+module, data: params, dataType: 'html', success:DGEA.updateField});
    },
    
@@ -116,6 +171,11 @@ var DGEA = {
 	  var params = 'barcode='+encodeURIComponent(sample)+'&comments='+encodeURIComponent(comments)+'&curAnimalRead='+encodeURIComponent(curAnimalRead)+'&curAnimal='+encodeURIComponent(curAnimal)+'&page=simple';
       DGEA.field2Update = 'box_main';
       $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/simple/saveSample', data: params, dataType: 'json', success:DGEA.saveSampleResult});
+   },
+   
+   generalMessage: function(message){
+      if(message == undefined) message = '';
+	  $('#general').html(message);
    },
    
    ajaxError: function(message){
@@ -142,7 +202,7 @@ var DGEA = {
         //if we have a message display it
         if(data.mssg != undefined){
            $('#general').html(data.mssg);
-           setTimeout('DGEA.ajaxError()', 5000);   //clear the message after 5 seconds
+           setTimeout('DGEA.generalmessage()', 5000);   //clear the message after 5 seconds
         }
      }
    },
@@ -152,6 +212,7 @@ var DGEA = {
     */
    displayAnimalInfo: function(animal){
       var curAnimal = (animal == undefined) ? DGEA.curAnimal : animal;
+      if(curAnimal.animal == undefined) return;
       
       var content = '';
       content += (animal == undefined) ? '<div>Current Animal Samples: <b>' : '<div>Samples for: <b>';
@@ -201,5 +262,19 @@ var DGEA = {
          $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/simple/deleteAnimal', data: params, dataType: 'html', success:DGEA.updateField});
       }
       else return;   //we have though twice and decided not to delete the sample
+   },
+   
+   changedRadius: function(value){
+      //alert(value);
+   },
+   
+   /**
+    * Refresh the page as it is....this will be crazy!!
+    */
+   refreshPage: function(){
+      //we want to refresh the page
+      DGEA.submitForm('simple/refreshSampler', 'householdCattle');
    }
 };
+
+var paged = DGEA.getVariable('page',document.location.search.substring(1));
