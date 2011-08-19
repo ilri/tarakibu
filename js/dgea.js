@@ -1,20 +1,20 @@
 /**
  Copyright 2011 ILRI
  
- This file is part of <ex simple sampler>.
+ This file is part of tarakibu.
  
- <ex simple sampler> is free software: you can redistribute it and/or modify
+ tarakibu is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
  
- <ex simple sampler> is distributed in the hope that it will be useful,
+ tarakibu is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
  
  You should have received a copy of the GNU General Public License
- along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ along with tarakibu.  If not, see <http://www.gnu.org/licenses/>.
  
 */
 
@@ -70,7 +70,10 @@ var DGEA = {
 	},
    
    updateGPSCoordinates: function(){
-      $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/simple/updateGPSCoordinates', data: 'page=simple', dataType: 'html', success: function(data){$('#gps_position').html(data)}});
+      $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/simple/updateGPSCoordinates', data: 'page=simple', dataType: 'html', 
+         success: function(data){$('#gps_position').html(data)}, 
+         error: function(data){$('#gps_position').html("<div class='gps_disconnected'>Lost connection to the server.</div>")}
+      });
       //keep updating the gps information
       setTimeout('DGEA.updateGPSCoordinates()', 500)
    },
@@ -131,6 +134,7 @@ var DGEA = {
 		 var message=result.substring(2,result.length);
 		 DGEA.ajaxError(message);
         setTimeout('DGEA.ajaxError()', 5000);   //clear the error message after a while
+        setTimeout('DGEA.generalMessage()', 5000);   //clear the general message after a while, if any
 		 return;
 	  }
 	  
@@ -153,7 +157,9 @@ var DGEA = {
          else DGEA.field2Update = 'main_box';
       }
       
-      $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/'+module, data: params, dataType: 'html', success:DGEA.updateField});
+      $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/'+module, data: params, dataType: 'html', success:DGEA.updateField, 
+         error: function(){ $('#'+DGEA.field2Update).html("<div class='gps_disconnected'>Lost connection to the server.</div>"); }
+      });
    },
    
    /**
@@ -244,7 +250,7 @@ var DGEA = {
          var params = 'page=simple&sample='+encodeURIComponent(res[1]);
          $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/simple/deleteSample', data: params, dataType: 'json', success:DGEA.saveSampleResult});
       }
-      else return;   //we have though twice and decided not to delete the sample
+      else{ return; }   //we have though twice and decided not to delete the sample
    },
    
    deleteAnimal: function(){
@@ -261,11 +267,19 @@ var DGEA = {
          DGEA.field2Update = 'main_box';
          $.ajax({type: 'POST', url:'http://localhost:'+DGEA.port+'/simple/deleteAnimal', data: params, dataType: 'html', success:DGEA.updateField});
       }
-      else return;   //we have though twice and decided not to delete the sample
+      else{ return; }  //we have though twice and decided not to delete the sample
    },
    
-   changedRadius: function(value){
-      //alert(value);
+   changedRadius: function(){
+      //get the current value and see if it has changed in any way, if it has get the new households
+      var curRadius = $('[name=radius]').val();
+      if(curRadius == DGEA.curRadius) return;
+      
+      //remove the current data
+      $('#siteHouseholds').html("<div class='error'>Updating</div>");
+      //create a request for this data
+       DGEA.submitForm('simple/updateHouseholds', 'siteHouseholds');
+       $('#householdCattle').html("<select><option value='0'>Select One</option></select>");
    },
    
    /**
@@ -273,7 +287,23 @@ var DGEA = {
     */
    refreshPage: function(){
       //we want to refresh the page
-      DGEA.submitForm('simple/refreshSampler', 'householdCattle');
+      var div2update = '', radius = undefined, household = undefined, cow2sample = undefined, curAnimal = undefined, site = undefined, sample = undefined;
+      var curAnimalReadId = undefined;
+      
+      if($('[name=household]').length != 0) household = $('[name=household]').val();
+      if($('[name=site]').length != 0) site = $('[name=site]').val();
+      if($('[name=cow2sample]').length != 0) cow2sample = $('[name=cow2sample]').val();
+      if($('[name=curAnimal]').length != 0) curAnimal = $('[name=curAnimal]').val();
+      if($('[name=sample]').length != 0) sample = $('[name=sample]').val();
+      if($('[name=curAnimalRead]').length != 0) curAnimalReadId = $('[name=curAnimalRead]').val();
+      if($('[name=radius]').length != 0) radius = $('[name=radius]').val();
+      
+//      var household = $('[name=household]').val();
+//      var household = $('[name=household]').val();
+//      var household = $('[name=household]').val();
+      if(household != 0 && cow2sample == 0) div2update = 'householdCattle';
+      else if(radius != undefined && household != 0) div2update = 'siteHouseholds';      //update the household in the given radius
+      DGEA.submitForm('simple/refreshSampler', div2update);
    }
 };
 

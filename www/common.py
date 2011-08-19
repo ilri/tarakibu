@@ -1,20 +1,20 @@
 """
  Copyright 2011 ILRI
  
- This file is part of <ex simple sampler>.
+ This file is part of tarakibu.
  
- <ex simple sampler> is free software: you can redistribute it and/or modify
+ tarakibu is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
  
- <ex simple sampler> is distributed in the hope that it will be useful,
+ tarakibu is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
  
  You should have received a copy of the GNU General Public License
- along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ along with tarakibu.  If not, see <http://www.gnu.org/licenses/>.
  
 """
 
@@ -33,31 +33,6 @@ class SimplePage():
         self.info = info
         self.gps = devices['gps']
 
-def ajax_function(port):
-    return """
-      function ajaxFunction(func,params)
-      {
-        
-      }
-"""
-
-def site_style():
-    return """<style type='text/css'>
-
-</style>
-"""
-                        
-def ajax(target, value):
-    value = sanitize(value)
-    return 'document.getElementById("%s").innerHTML= "%s"; ' % (target,value)
-
-def ajax_value(target, value):
-    value = sanitize(value)
-    return 'document.getElementById("%s").value = "%s"' % (target, value)
-
-def sanitize(string):
-    string = string.replace('\n','')
-    return string
 
 def gpsPosition(gps):
     """
@@ -76,6 +51,7 @@ def gpsPosition(gps):
             gps.timeZoneName)
     return "<div class='gps_disconnected'>Disconnected</div>"
 
+
 def gps_format(pos):
 	"""
 	Formats the raw longitude or latitude
@@ -85,11 +61,3 @@ def gps_format(pos):
 		output = '%+.6f' % pos
 		output = output.zfill(10)
 	return output
-
-def reader(rfid):
-    color = '#f00'
-    if rfid.status == 'connected':
-        color = '#ff0'
-    elif rfid.status == 'reading':
-        color = '#0f0'
-    return '<div style=\'color: %s;\'>%s</div>' % (color, rfid.name)

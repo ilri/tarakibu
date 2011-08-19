@@ -1,20 +1,20 @@
 """
  Copyright 2011 ILRI
  
- This file is part of <ex simple sampler>.
+ This file is part of tarakibu.
  
- <ex simple sampler> is free software: you can redistribute it and/or modify
+ tarakibu is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
  
- <ex simple sampler> is distributed in the hope that it will be useful,
+ tarakibu is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
  
  You should have received a copy of the GNU General Public License
- along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ along with tarakibu.  If not, see <http://www.gnu.org/licenses/>.
  
 """
 
@@ -27,6 +27,7 @@ CHANGELOG
 from common import *
 
 class summary(SimplePage):
+
 
     def site(self, info):
         """
@@ -88,44 +89,3 @@ class summary(SimplePage):
             </body>
           </html>
           """ % (self.title, self.version, self.port, self.port, self.title, self.title, self.version)
-
-    def parse_form(self, form, info, devices):
-        samples = {}
-        for label in form:
-            if label != 'page':
-                tag = label[:9]
-                if tag not in samples.keys():
-                    samples[tag] = ['',('delete', False)]
-                if label[9:] == 'delete':
-                    samples[tag][1] = ('delete', True)
-                else:
-                    samples[tag][0] = ('comment', form[label][0])
-        for label in samples:
-            self.db.update_samples(label, samples[label])
-    
-    def location(self, info):
-        location = self.db.get_location(self.devices['gps'])
-        info  = '<h3>Known animals at this Location</h3>'
-        info += '<table>'
-        info += '<tr><th>Tag</td><th>Sex</td><th>Owner</td><th>Location</td></tr>'
-        for animal in self.db.get_animals_at_location(location):
-            color = '#f00'
-            if animal[4]:
-                color = '#0f0'
-            info += '<tr style=\'color:%s\'><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (color, animal[0], animal[1], animal[2], animal[3])
-        info += '</table>'
-        if location:
-            output = ajax('where', 'You are at %s' % location)
-            output += ajax('info', info)
-        else:
-            output = ajax('where', 'You are at an unknown position')
-        return output
-    
-    def previous_samples(self, info):
-        output  = '<table>'
-        output += '<tr><th>Sample</td><th>Comment</td><th>Delete</td></tr>'
-        for sample in self.db.get_latest_samples():
-            output += '<tr><td>%s</td><td><input type=\'text\' name=\'%s\' value=\'%s\'></td><td><input type=\'checkbox\' name=\'%sdelete\'></td></tr>' % \
-                (sample[0], sample[0], sample[2], sample[0])
-        output += '</table>'
-        return ajax('input_form', output)

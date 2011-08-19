@@ -1,8 +1,28 @@
+/**
+ Copyright 2011 ILRI
+ 
+ This file is part of tarakibu.
+ 
+ tarakibu is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ tarakibu is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with tarakibu.  If not, see <http://www.gnu.org/licenses/>.
+ 
+*/
+
 body {
    background-color: #fff;
    font-family: Trebuchet MS, Verdana;
    color: #fff;
-   font-size: 1.3em
+   font-size: 1.0em
 }
 h1 {
    margin: 15px;
@@ -31,8 +51,8 @@ a {
 }
 .box {
    background-color: #000;
-   padding: 10px;
-   width: 430px;
+   padding: 10px 5px;
+   width: 450px;
    border: 1px solid #fff;
 }
 .box.top {
@@ -44,34 +64,34 @@ a {
 }
 
 .box.main {
-   margin: 10px 0 0 0;
+   margin: 5px 0 0 0;
    height: 345px;
 }
 .left {
    float: left;
-   margin: 10px 10px 10px 30px;
-   width: 450px;
+   margin: 10px 5px 10px 20px;
+   width: 470px;
 }
 .right {
    float: right;
-   margin: 10px 30px 10px 10px;
-   width: 450px;
+   margin: 10px 20px 10px 5px;
+   width: 460px;
 }
 .footer {
    float: left;
    background-color: #000;
-   margin: 0 30px 0 30px;
+   margin: 0 20px;
    padding: 5px;
-   width: 910px;
-   height: 10px;
+   width: 940px;
+   height: 15px;
    text-align: center;
-   font-size: 0.5em;
+   font-size: 0.7em;
    border: 1px solid #fff;
 }
 .scroller {
    overflow: auto;
-   width: 420px;
-   padding: 10px;
+   width: 440px;
+   padding: 5px 0px;
 }
 
 .info {
@@ -127,7 +147,7 @@ a {
 }
 
 #input_form .show_all{
-   margin-left: 40px;
+   margin-left: 25px;
 }
 
 #input_form .first_row{
@@ -153,4 +173,8 @@ ol {
    width: 30px;
    margin-left: -20px;
    border: 0px;
+}
+
+#input_form table{
+   font-size: 1em;
 }

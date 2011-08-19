@@ -1,20 +1,20 @@
 """
  Copyright 2011 ILRI
  
- This file is part of <ex simple sampler>.
+ This file is part of tarakibu.
  
- <ex simple sampler> is free software: you can redistribute it and/or modify
+ tarakibu is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
  
- <ex simple sampler> is distributed in the hope that it will be useful,
+ tarakibu is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
  
  You should have received a copy of the GNU General Public License
- along with <ex simple sampler>.  If not, see <http://www.gnu.org/licenses/>.
+ along with tarakibu.  If not, see <http://www.gnu.org/licenses/>.
  
 """
 
@@ -49,7 +49,7 @@ class GPSReader(threading.Thread):
 		self.conn     		= None
 		self.distalgo 		= 'haversine'
 		self.data 			= {'latitude':'N/A',   'longitude':'N/A', 'altitude':'N/A', 'satellites':'N/A', 'dilution':'N/A',   'time':'<unknown>', 'formattedTime':'<unknown>', 'date': '<unknown>', 'raw':''}
-		self.gga 			= re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),\d,(\d+),([0-9.]+),([-0-9.]*),(M),[-0-9.]*,M,,0000\*...')
+		self.gga 			= re.compile('\$GPGGA,([0-9.]+),([0-9.]+),(S|N),([0-9.]+),(E|W),(\d),(\d+),([0-9.]+),([-0-9.]*),(M),[-0-9.]*,M,,0000\*...')
 
 	def findGPSDongle(self):
 		"""
@@ -94,20 +94,23 @@ class GPSReader(threading.Thread):
 					self.status = 'running'
 				sleep(0.5)
 				raw_data = self.conn.readline()
+				#print raw_data
 				match = self.gga.match(raw_data)
+				#print 'Fix Quality: %s' % match.group(6)
 				
 				if match:
 					self.data['time'] = match.group(1)      
 					self.data['latitude'] = self.convert(match.group(2))  
 					self.data['longitude'] = self.convert(match.group(4))
-					self.data['satellites'] = match.group(6)
-					self.data['dilution'] = match.group(7)
+					self.data['satellites'] = match.group(7)
+					self.data['dilution'] = match.group(8)
+					self.data['fix_quality'] = match.group(6)
 					self.data['raw'] = raw_data[:-2]
 					self.data['formattedTime'] = self.timeFormat(self.data['time'])
 					self.data['date'] = strftime("%Y-%m-%d")
 					
-					if match.group(8):
-						self.data['altitude'] = match.group(8)
+					if match.group(9):
+						self.data['altitude'] = match.group(9)
 					if match.group(3) == 'S':
 						self.data['latitude'] = -self.data['latitude']
 					if match.group(5) == 'W':
